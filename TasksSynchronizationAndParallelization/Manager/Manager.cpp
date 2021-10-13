@@ -6,6 +6,8 @@
 
 #include <boost/process.hpp>
 
+#include "ProcessWrapper.h"
+
 int main()
 {
     namespace bp = boost::process;
@@ -14,29 +16,25 @@ int main()
     std::cout << "Enter x: " << std::endl;
     std::cin >> x;
 
-    bp::opstream inf;
-    bp::ipstream outf;
-    bp::opstream ing;
-    bp::ipstream outg;
+    ProcessWrapper f("f.exe");
+    ProcessWrapper g("g.exe");
 
-    bp::child cf("f.exe", bp::std_out > outf, bp::std_in < inf);
-    bp::child cg("g.exe", bp::std_out > outg, bp::std_in < ing);
-    inf << x << std::endl;
-    ing << x << std::endl;
+    f.start();
+    g.start();
+    f.writeToInStream<int>(x);
+    g.writeToInStream<int>(x);
 
-    while (cf.running() || cg.running()) {
+    while (f.running() || g.running()) {
         if (GetAsyncKeyState(27) & 0x0001) {
             std::cout << ".";
         }
     }
 
-    int fCode, gCode;
-    outf >> fCode;
-    outg >> gCode;
+    auto fCode = f.readFromOutStream<int>();
+    auto gCode = g.readFromOutStream<int>();
     if (fCode == 0 && gCode == 0) {
-        int fResult, gResult;
-        outf >> fResult;
-        outg >> gResult;
+        auto fResult = f.readFromOutStream<int>();
+        auto gResult = g.readFromOutStream<int>();
         std::cout << "Result: " << fResult + gResult;
     }
     if(fCode == 1){
@@ -51,6 +49,4 @@ int main()
     if (gCode == 2) {
         std::cout << "g function failed, hard" << std::endl;
     }
-    cf.wait();
-    cg.wait();
 }
