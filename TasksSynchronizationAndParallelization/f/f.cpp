@@ -1,6 +1,10 @@
 #include <iostream>
+#include <string>
 
 int main()
 {
-    std::cout << "Hello from f!\n";
+    int x;
+    std::cin >> x;
+    std::cout << x + 5;
+    return 0;
 }
