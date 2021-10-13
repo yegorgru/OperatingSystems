@@ -30,12 +30,27 @@ int main()
         }
     }
 
-    int valuef, valueg;
-    outf >> valuef;
-    std::cout << valuef;
-    outg >> valueg;
-    std::cout << valueg;
-    
+    int fCode, gCode;
+    outf >> fCode;
+    outg >> gCode;
+    if (fCode == 0 && gCode == 0) {
+        int fResult, gResult;
+        outf >> fResult;
+        outg >> gResult;
+        std::cout << "Result: " << fResult + gResult;
+    }
+    if(fCode == 1){
+        std::cout << "f function failed, soft" << std::endl;
+    }
+    if (gCode == 1) {
+        std::cout << "g function failed, soft" << std::endl;
+    }
+    if (fCode == 2) {
+        std::cout << "f function failed, hard" << std::endl;
+    }
+    if (gCode == 2) {
+        std::cout << "g function failed, hard" << std::endl;
+    }
     cf.wait();
     cg.wait();
 }

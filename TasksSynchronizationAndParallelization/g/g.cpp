@@ -1,13 +1,20 @@
 #include <iostream>
-#include <string>
-#include <thread>
-#include <chrono>
+#include "../lab1_cpp/trialfuncs.hpp"
 
 int main()
 {
+    static_assert(std::is_same<int, os::lab1::compfuncs::op_group_traits<os::lab1::compfuncs::INT_SUM>::value_type>(), "wrong typing for INT_SUM");
     int x;
     std::cin >> x;
-    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
-    std::cout << x;
+    auto result = os::lab1::compfuncs::trial_g<os::lab1::compfuncs::INT_SUM>(x);
+    if (std::holds_alternative<os::lab1::compfuncs::hard_fail>(result)) {
+        std::cout << 2;
+    }
+    else if (std::holds_alternative<os::lab1::compfuncs::soft_fail>(result)) {
+        std::cout << 1;
+    }
+    else if (std::holds_alternative<int>(result)) {
+        std::cout << 0 << std::endl << std::get<int>(result) << std::endl;
+    }
     return 0;
 }
