@@ -1,71 +1,50 @@
-#include <algorithm>
+#include "Manager.h"
+
 #include <iostream>
+
+#include <boost/chrono.hpp>
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-#include <boost/process.hpp>
-#include <boost/thread.hpp>
+Manager::Manager()
+    : mF("f.exe")
+    , mG("g.exe")
+{
 
-#include "ProcessWrapper.h"
-
-void reportResult(ProcessWrapper& f, ProcessWrapper& g) {
-    auto fCode = f.read<int>();
-    auto gCode = g.read<int>();
-    if (fCode == 0 && gCode == 0) {
-        auto fResult = f.read<int>();
-        auto gResult = g.read<int>();
-        std::cout << "Result: " << fResult + gResult << std::endl;
-    }
-    if (fCode == 1) {
-        std::cout << "f function failed, soft" << std::endl;
-    }
-    if (gCode == 1) {
-        std::cout << "g function failed, soft" << std::endl;
-    }
-    if (fCode == 2) {
-        std::cout << "f function failed, hard" << std::endl;
-    }
-    if (gCode == 2) {
-        std::cout << "g function failed, hard" << std::endl;
-    }
 }
 
-int main()
+void Manager::run()
 {
-    namespace bp = boost::process;
     int x;
     std::cout << "Enter x: " << std::endl;
     std::cin >> x;
 
-    ProcessWrapper f("f.exe");
-    ProcessWrapper g("g.exe");
-
-    f.start();
-    g.start();
-    f.write<int>(x);
-    g.write<int>(x);
+    mF.start();
+    mG.start();
+    mF.write<int>(x);
+    mG.write<int>(x);
 
     //todo : reset keyboard state before listening
-    while (f.running() || g.running()) {
+    while (mF.running() || mG.running()) {
         if (GetAsyncKeyState(27) & 0x0001) {
             std::cout << "Please confirm that computation should be stopped y(es, stop)/n(ot yet) [n]" << std::endl;
             auto start = boost::chrono::steady_clock::now();
             while (true) {
                 if (GetAsyncKeyState(89) & 0x0001) {
-                    if (!f.running() && !g.running()) {
+                    if (!mF.running() && !mG.running()) {
                         std::cout << "overridden by system" << std::endl;
-                        reportResult(f, g);
+                        reportResult();
                         exit(0);
                     }
                     std::cout << "Computation was cancled." << std::endl;
-                    if (f.running()) {
+                    if (mF.running()) {
                         std::cout << "f did not finish. " << std::endl;
-                        f.terminate();
+                        mF.terminate();
                     }
-                    if(g.running()) {
+                    if (mG.running()) {
                         std::cout << "g did not finish. " << std::endl;
-                        g.terminate();
+                        mG.terminate();
                     }
                     exit(0);
                 }
@@ -82,5 +61,27 @@ int main()
         }
     }
 
-    reportResult(f, g);
+    reportResult();
+}
+
+void Manager::reportResult() {
+    auto fCode = mF.read<int>();
+    auto gCode = mG.read<int>();
+    if (fCode == 0 && gCode == 0) {
+        auto fResult = mF.read<int>();
+        auto gResult = mG.read<int>();
+        std::cout << "Result: " << fResult + gResult << std::endl;
+    }
+    if (fCode == 1) {
+        std::cout << "f function failed, soft" << std::endl;
+    }
+    if (gCode == 1) {
+        std::cout << "g function failed, soft" << std::endl;
+    }
+    if (fCode == 2) {
+        std::cout << "f function failed, hard" << std::endl;
+    }
+    if (gCode == 2) {
+        std::cout << "g function failed, hard" << std::endl;
+    }
 }
