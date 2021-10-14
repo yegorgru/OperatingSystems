@@ -20,3 +20,11 @@ bool ProcessWrapper::running()
 {
 	return mProcess.running();
 }
+
+void ProcessWrapper::terminate()
+{
+	if (!mProcess.running()) {
+		throw std::runtime_error("child process is not running");
+	}
+	mProcess.terminate();
+}

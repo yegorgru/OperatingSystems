@@ -16,15 +16,15 @@ public:
 public:
 	void start();
 	bool running();
+	void terminate();
 public:
 	template<typename T>
-	void writeToInStream(const T& value)
+	void write(const T& value)
 	{
 		mInStream << value << std::endl;
 	}
-
 	template<typename T>
-	T readFromOutStream()
+	T read()
 	{
 		T value;
 		mOutStream >> value;
