@@ -1,6 +1,4 @@
 #include "Manager.h"
-#include <iostream>
-#include <thread>
 
 int main()
 {

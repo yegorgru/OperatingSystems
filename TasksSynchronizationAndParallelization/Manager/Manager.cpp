@@ -9,9 +9,17 @@
 #include <windows.h>
 
 namespace {
+    void resetKeyStates() {
+        std::vector<char> keys{ 78, 89, 27, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57 };
+        for (auto key : keys) {
+            GetAsyncKeyState(key) & 0x0001;
+        }
+    }
+
     template <typename T>
     T readNumberInput()
     {
+        resetKeyStates();
         std::stringstream ss;
         while (!(GetAsyncKeyState(13) & 0x0001)) {
             for (int i = 48; i <= 57; i++) {
@@ -35,6 +43,8 @@ namespace {
 Manager::Manager()
     : mF("f.exe")
     , mG("g.exe")
+    , mFComputed(false)
+    , mGComputed(false)
 {
 
 }
@@ -68,12 +78,19 @@ void Manager::run()
 
 void Manager::performSingleComputation(int x, uint32_t amountOfAttempts)
 {
-    //bool 
+    mFComputed = false;
+    mGComputed = false;
     for (uint32_t i = 0; i < amountOfAttempts; i++) {
-        mF.start();
-        mG.start();
-        mF.write<int>(x);
-        mG.write<int>(x);
+        std::cout << "Computations have started. Attempt #" << i + 1 << std::endl;
+        if (!mFComputed) {
+            mF.start();
+            mF.write<int>(x);
+        }
+        if (!mGComputed) {
+            mG.start();
+            mG.write<int>(x);
+        }
+        resetKeyStates();
         while (mF.running() || mG.running()) {
             if (GetAsyncKeyState(27) & 0x0001) {
                 switch (confirmation("Please confirm that computation should be stopped y(es, stop)/n(ot yet) [n]", 5)) {
@@ -106,13 +123,13 @@ void Manager::performSingleComputation(int x, uint32_t amountOfAttempts)
             }
         }
 
-        if (reportResult()) {
+        if (processResults()) {
             return;
         }
     }
 }
 
-bool Manager::reportResult() {
+bool Manager::processResults() {
     auto fCode = mF.read<int>();
     auto gCode = mG.read<int>();
     if (fCode == 0 && gCode == 0) {
@@ -132,11 +149,14 @@ bool Manager::reportResult() {
     if (gCode == 2) {
         std::cout << "g function failed, hard" << std::endl;
     }
+    mFComputed = fCode != 1;
+    mGComputed = gCode != 1;
     return fCode != 1 && gCode != 1;
 }
 
 Manager::ConfirmationResult Manager::confirmation(const std::string& message, uint32_t seconds)
 {
+    resetKeyStates();
     std::cout << message << std::endl;
     auto start = boost::chrono::steady_clock::now();
     while (true) {
