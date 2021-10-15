@@ -7,14 +7,14 @@ int main()
     int x;
     std::cin >> x;
     auto result = os::lab1::compfuncs::trial_f<os::lab1::compfuncs::INT_SUM>(x);
-    if (std::holds_alternative<os::lab1::compfuncs::hard_fail>(result)) {
-        std::cout << 2;
+    if (std::holds_alternative<int>(result)) {
+        std::cout << 0 << std::endl << std::get<int>(result) << std::endl;
     }
     else if (std::holds_alternative<os::lab1::compfuncs::soft_fail>(result)) {
         std::cout << 1;
     }
-    else if (std::holds_alternative<int>(result)) {
-        std::cout << 0 << std::endl << std::get<int>(result) << std::endl;
+    else {
+        std::cout << 2;
     }
     return 0;
 }

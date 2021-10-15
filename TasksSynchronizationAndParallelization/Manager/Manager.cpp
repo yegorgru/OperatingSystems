@@ -38,6 +38,33 @@ namespace {
         ss >> result;
         return result;
     }
+
+    enum class ConfirmationResult {
+        Yes,
+        No,
+        Timeout
+    };
+
+    ConfirmationResult confirm(const std::string& message, uint32_t seconds)
+    {
+        resetKeyStates();
+        std::cout << message << std::endl;
+        auto start = boost::chrono::steady_clock::now();
+        while (true) {
+            if (GetAsyncKeyState(89) & 0x0001) {
+                return ConfirmationResult::Yes;
+            }
+            else if (GetAsyncKeyState(78) & 0x0001) {
+                return ConfirmationResult::No;
+            }
+            else {
+                auto now = boost::chrono::steady_clock::now();
+                if (boost::chrono::duration_cast<boost::chrono::seconds>(now - start).count() > seconds) {
+                    return ConfirmationResult::Timeout;
+                }
+            }
+        }
+    }
 }
 
 Manager::Manager()
@@ -61,7 +88,7 @@ void Manager::run()
 
         performSingleComputation(x, amountOfAttempts);
 
-        switch (confirmation("Please confirm performing of next computation y(es, perform)/n(o, exit) [n]", 10)) {
+        switch (confirm("Please confirm performing of next computation y(es, perform)/n(o, exit) [n]", 30)) {
         case ConfirmationResult::Yes: {
             continue;
         }
@@ -69,7 +96,7 @@ void Manager::run()
             return;
         }
         case ConfirmationResult::Timeout: {
-            std::cout << "Next computation is not confirmed within 10s, closing" << std::endl;
+            std::cout << "Next computation is not confirmed within 30s, closing" << std::endl;
             return;
         }
         }
@@ -93,7 +120,7 @@ void Manager::performSingleComputation(int x, uint32_t amountOfAttempts)
         resetKeyStates();
         while (mF.running() || mG.running()) {
             if (GetAsyncKeyState(27) & 0x0001) {
-                switch (confirmation("Please confirm that computation should be stopped y(es, stop)/n(ot yet) [n]", 5)) {
+                switch (confirm("Please confirm that computation should be stopped y(es, stop)/n(ot yet) [n]", 5)) {
                 case ConfirmationResult::Yes: {
                     if (!mF.running() && !mG.running()) {
                         std::cout << "overridden by system" << std::endl;
@@ -127,6 +154,7 @@ void Manager::performSingleComputation(int x, uint32_t amountOfAttempts)
             return;
         }
     }
+    std::cout << "Maximum amount of attempts is reached" << std::endl;
 }
 
 bool Manager::processResults() {
@@ -152,25 +180,4 @@ bool Manager::processResults() {
     mFComputed = fCode != 1;
     mGComputed = gCode != 1;
     return fCode != 1 && gCode != 1;
-}
-
-Manager::ConfirmationResult Manager::confirmation(const std::string& message, uint32_t seconds)
-{
-    resetKeyStates();
-    std::cout << message << std::endl;
-    auto start = boost::chrono::steady_clock::now();
-    while (true) {
-        if (GetAsyncKeyState(89) & 0x0001) {
-            return ConfirmationResult::Yes;
-        }
-        else if (GetAsyncKeyState(78) & 0x0001) {
-            return ConfirmationResult::No;
-        }
-        else {
-            auto now = boost::chrono::steady_clock::now();
-            if (boost::chrono::duration_cast<boost::chrono::seconds>(now - start).count() > seconds) {
-                return ConfirmationResult::Timeout;
-            }
-        }
-    }
 }
