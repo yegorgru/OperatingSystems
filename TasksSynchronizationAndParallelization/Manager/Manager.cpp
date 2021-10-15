@@ -1,11 +1,36 @@
 #include "Manager.h"
 
 #include <iostream>
+#include <sstream>
 
 #include <boost/chrono.hpp>
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+
+namespace {
+    template <typename T>
+    T readNumberInput()
+    {
+        std::stringstream ss;
+        while (!(GetAsyncKeyState(13) & 0x0001)) {
+            for (int i = 48; i <= 57; i++) {
+                if (GetAsyncKeyState(i) & 0x0001) {
+                    char cur = static_cast<char>(i);
+                    ss << cur;
+                    std::cout << cur;
+                }
+            }
+            if ((GetAsyncKeyState(8) & 0x0001) && ss.str().size() != 0) {
+                std::cout << "\b \b";
+            }
+        }
+        std::cout << std::endl;
+        T result = 0;
+        ss >> result;
+        return result;
+    }
+}
 
 Manager::Manager()
     : mF("f.exe")
@@ -16,28 +41,49 @@ Manager::Manager()
 
 void Manager::run()
 {
-    int x;
-    std::cout << "Enter x: " << std::endl;
-    std::cin >> x;
+    while (true) {
+        std::cout << "Enter x: " << std::endl;
+        auto x = readNumberInput<int>();
 
-    mF.start();
-    mG.start();
-    mF.write<int>(x);
-    mG.write<int>(x);
+        std::cout << "Enter amount of attempts in case of soft fail: " << std::endl;
+        auto amountOfAttempts = readNumberInput<uint32_t>();
+        amountOfAttempts = amountOfAttempts == 0 ? 1 : amountOfAttempts;
 
-    //todo : reset keyboard state before listening
-    while (mF.running() || mG.running()) {
-        if (GetAsyncKeyState(27) & 0x0001) {
-            std::cout << "Please confirm that computation should be stopped y(es, stop)/n(ot yet) [n]" << std::endl;
-            auto start = boost::chrono::steady_clock::now();
-            while (true) {
-                if (GetAsyncKeyState(89) & 0x0001) {
+        performSingleComputation(x, amountOfAttempts);
+
+        switch (confirmation("Please confirm performing of next computation y(es, perform)/n(o, exit) [n]", 10)) {
+        case ConfirmationResult::Yes: {
+            continue;
+        }
+        case ConfirmationResult::No: {
+            return;
+        }
+        case ConfirmationResult::Timeout: {
+            std::cout << "Next computation is not confirmed within 10s, closing" << std::endl;
+            return;
+        }
+        }
+    }
+}
+
+void Manager::performSingleComputation(int x, uint32_t amountOfAttempts)
+{
+    //bool 
+    for (uint32_t i = 0; i < amountOfAttempts; i++) {
+        mF.start();
+        mG.start();
+        mF.write<int>(x);
+        mG.write<int>(x);
+        while (mF.running() || mG.running()) {
+            if (GetAsyncKeyState(27) & 0x0001) {
+                switch (confirmation("Please confirm that computation should be stopped y(es, stop)/n(ot yet) [n]", 5)) {
+                case ConfirmationResult::Yes: {
                     if (!mF.running() && !mG.running()) {
                         std::cout << "overridden by system" << std::endl;
-                        reportResult();
-                        exit(0);
                     }
-                    std::cout << "Computation was cancled." << std::endl;
+                    else {
+                        std::cout << "Computation was canceled." << std::endl;
+                    }
                     if (mF.running()) {
                         std::cout << "f did not finish. " << std::endl;
                         mF.terminate();
@@ -46,25 +92,27 @@ void Manager::run()
                         std::cout << "g did not finish. " << std::endl;
                         mG.terminate();
                     }
-                    exit(0);
-                }
-                else if (GetAsyncKeyState(78) & 0x0001) {
-                    std::cout << "Cancellation was not confirmed" << std::endl;
                     break;
                 }
-                auto now = boost::chrono::steady_clock::now();
-                if (boost::chrono::duration_cast<boost::chrono::seconds>(now - start).count() > 5) {
+                case ConfirmationResult::No: {
+                    std::cout << "Action was not confirmed" << std::endl;
+                    break;
+                }
+                case ConfirmationResult::Timeout: {
                     std::cout << "Action is not confirmed within 5s proceeding..." << std::endl;
                     break;
                 }
+                }
             }
         }
-    }
 
-    reportResult();
+        if (reportResult()) {
+            return;
+        }
+    }
 }
 
-void Manager::reportResult() {
+bool Manager::reportResult() {
     auto fCode = mF.read<int>();
     auto gCode = mG.read<int>();
     if (fCode == 0 && gCode == 0) {
@@ -83,5 +131,26 @@ void Manager::reportResult() {
     }
     if (gCode == 2) {
         std::cout << "g function failed, hard" << std::endl;
+    }
+    return fCode != 1 && gCode != 1;
+}
+
+Manager::ConfirmationResult Manager::confirmation(const std::string& message, uint32_t seconds)
+{
+    std::cout << message << std::endl;
+    auto start = boost::chrono::steady_clock::now();
+    while (true) {
+        if (GetAsyncKeyState(89) & 0x0001) {
+            return ConfirmationResult::Yes;
+        }
+        else if (GetAsyncKeyState(78) & 0x0001) {
+            return ConfirmationResult::No;
+        }
+        else {
+            auto now = boost::chrono::steady_clock::now();
+            if (boost::chrono::duration_cast<boost::chrono::seconds>(now - start).count() > seconds) {
+                return ConfirmationResult::Timeout;
+            }
+        }
     }
 }
