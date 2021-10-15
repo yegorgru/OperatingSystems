@@ -163,7 +163,7 @@ bool Manager::processResults() {
     if (fCode == 0 && gCode == 0) {
         auto fResult = mF.read<int>();
         auto gResult = mG.read<int>();
-        std::cout << "Result: " << fResult + gResult << std::endl;
+        std::cout << "Result: " << static_cast<int64_t>(fResult) + gResult << std::endl;
     }
     if (fCode == 1) {
         std::cout << "f function failed, soft" << std::endl;
