@@ -19,6 +19,7 @@ namespace {
         }
     }
 
+    //This function is here in order to have non-blocking input
     template <typename T>
     T readNumberInput()
     {
