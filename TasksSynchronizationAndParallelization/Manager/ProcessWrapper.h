@@ -1,18 +1,23 @@
-#pragma once
+#ifndef _OS_LAB1_PROCESSWRAPPER_H_
+#define _OS_LAB1_PROCESSWRAPPER_H_
 
-#include <algorithm>
+#include <algorithm>		//include to prevent problems with namespace std inside boost
 #include <string>
 
 #include <boost/process.hpp>
 
+namespace OS::Lab1
+{
+
 class ProcessWrapper
 {
 public:
-	using ChildProcess = boost::process::child;
-	using InStream = boost::process::opstream;
-	using OutStream = boost::process::ipstream;
-public:
 	ProcessWrapper(const std::string& command);
+	ProcessWrapper(const ProcessWrapper&) = delete;
+	ProcessWrapper(ProcessWrapper&&) = delete;
+	~ProcessWrapper() = default;
+	ProcessWrapper& operator= (const ProcessWrapper&) = delete;
+	ProcessWrapper& operator= (ProcessWrapper&&) = delete;
 public:
 	void start();
 	bool running();
@@ -31,9 +36,16 @@ public:
 		return value;
 	}
 private:
-	ChildProcess mProcess;
+	using Process = boost::process::child;
+	using InStream = boost::process::opstream;
+	using OutStream = boost::process::ipstream;
+private:
+	Process mProcess;
 	std::string mCommand;
 	InStream mInStream;
 	OutStream mOutStream;
 };
 
+} //OS::Lab1
+
+#endif //_OS_LAB1_PROCESSWRAPPER_H_

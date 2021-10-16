@@ -2,6 +2,6 @@
 
 int main()
 {
-	Manager manager;
+	OS::Lab1::Manager manager;
 	manager.run();
 }

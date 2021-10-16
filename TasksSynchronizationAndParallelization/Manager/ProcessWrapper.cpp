@@ -2,6 +2,9 @@
 
 #include <stdexcept>
 
+namespace OS::Lab1
+{
+
 ProcessWrapper::ProcessWrapper(const std::string& command)
 	: mCommand(command)
 {
@@ -15,7 +18,7 @@ void ProcessWrapper::start()
 	}
 	mInStream = InStream();
 	mOutStream = OutStream();
-	mProcess = ChildProcess(mCommand, boost::process::std_out > mOutStream, boost::process::std_in < mInStream);
+	mProcess = Process(mCommand, boost::process::std_out > mOutStream, boost::process::std_in < mInStream);
 }
 
 bool ProcessWrapper::running()
@@ -29,4 +32,6 @@ void ProcessWrapper::terminate()
 		throw std::runtime_error("child process is not running");
 	}
 	mProcess.terminate();
+}
+
 }

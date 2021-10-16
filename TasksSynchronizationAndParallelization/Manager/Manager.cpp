@@ -5,8 +5,11 @@
 
 #include <boost/chrono.hpp>
 
-#define WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN     //define to prevent windows.h problems
 #include <windows.h>
+
+namespace OS::Lab1
+{
 
 namespace {
     void resetKeyStates() {
@@ -70,8 +73,8 @@ namespace {
 Manager::Manager()
     : mF("f.exe")
     , mG("g.exe")
-    , mFResults{-1, -1}
-    , mGResults{ -1, -1 }
+    , mFResults{Code::Undefined, -1}
+    , mGResults{ Code::Undefined, -1 }
 {
 
 }
@@ -105,30 +108,34 @@ void Manager::run()
 
 void Manager::performSingleComputation(int x, uint32_t amountOfAttempts)
 {
-    mFResults = {-1, -1};
-    mGResults = { -1, -1 };
+    mFResults = {Code::Undefined, -1};
+    mGResults = { Code::Undefined, -1 };
     for (uint32_t i = 0; i < amountOfAttempts; i++) {
         std::cout << "Computations have started. Attempt #" << i + 1 << std::endl;
-        if (mFResults.first == -1) {
+        if (mFResults.first == Code::Undefined) {
             mF.start();
             mF.write<int>(x);
         }
-        if (mGResults.first == -1) {
+        if (mGResults.first == Code::Undefined) {
             mG.start();
             mG.write<int>(x);
         }
         resetKeyStates();
         while (mF.running() || mG.running()) {
-            if (mFResults.first == -1 && !mF.running()) {
+            if (mFResults.first == Code::Undefined && !mF.running()) {
                 getResults(true);
-                if (mFResults.first == 2) {
+                //here is no soft fail check and immediate restart of the process, 
+                //because if another function returns hard fail or is undefined,
+                //then there is no point in restarting the process
+                if (mFResults.first == Code::HardFail) {
                     reportResults();
                     return;
                 }
             }
-            if (mGResults.first == -1 && !mG.running()) {
+            if (mGResults.first == Code::Undefined && !mG.running()) {
                 getResults(false);
-                if (mGResults.first == 2) {
+                //the same here
+                if (mGResults.first == Code::HardFail) {
                     reportResults();
                     return;
                 }
@@ -136,13 +143,14 @@ void Manager::performSingleComputation(int x, uint32_t amountOfAttempts)
             if (GetAsyncKeyState(27) & 0x0001) {
                 switch (confirm("Please confirm that computation should be stopped y(es, stop)/n(ot yet) [n]", 5)) {
                 case ConfirmationResult::Yes: {
-                    if (!mF.running() && mFResults.first == -1) {
+                    if (!mF.running() && mFResults.first == Code::Undefined) {
                         getResults(true);
                     }
-                    if (!mG.running() && mGResults.first == -1) {
+                    if (!mG.running() && mGResults.first == Code::Undefined) {
                         getResults(false);
                     }
-                    if (mFResults.first == 2 || mGResults.first == 2 || mFResults.first == 0 && mGResults.first == 0) 
+                    if (mFResults.first == Code::HardFail || mGResults.first == Code::HardFail ||
+                        mFResults.first == Code::Value && mGResults.first == Code::Value) 
                     {
                         std::cout << "overridden by system" << std::endl;
                         reportResults();
@@ -171,36 +179,38 @@ void Manager::performSingleComputation(int x, uint32_t amountOfAttempts)
                 }
             }
         }
-        if (mFResults.first == -1) {
+        if (mFResults.first == Code::Undefined) {
             getResults(true);
         }
-        if (mGResults.first == -1) {
+        if (mGResults.first == Code::Undefined) {
             getResults(false);
         }
         reportResults();
-        if (!(mFResults.first == 1 && mGResults.first != 2 || mFResults.first != 2 && mGResults.first == 1)) {
+        if (!(mFResults.first == Code::SoftFail && mGResults.first != Code::HardFail ||
+            mFResults.first != Code::HardFail && mGResults.first == Code::SoftFail))
+        {
             return;
         }
-        mFResults.first = mFResults.first == 1 ? -1 : mFResults.first;
-        mGResults.first = mGResults.first == 1 ? -1 : mGResults.first;
+        mFResults.first = mFResults.first == Code::SoftFail ? Code::Undefined : mFResults.first;
+        mGResults.first = mGResults.first == Code::SoftFail ? Code::Undefined : mGResults.first;
     }
     std::cout << "Maximum amount of attempts is reached" << std::endl;
 }
 
 void Manager::reportResults() {
-    if (mFResults.first == 0 && mGResults.first == 0) {
+    if (mFResults.first == Code::Value && mGResults.first == Code::Value) {
         std::cout << "Result: " << static_cast<int64_t>(mFResults.second) + mGResults.second << std::endl;
     }
-    if (mFResults.first == 1) {
+    if (mFResults.first == Code::SoftFail) {
         std::cout << "f function failed, soft" << std::endl;
     }
-    if (mGResults.first == 1) {
+    if (mGResults.first == Code::SoftFail) {
         std::cout << "g function failed, soft" << std::endl;
     }
-    if (mFResults.first == 2) {
+    if (mFResults.first == Code::HardFail) {
         std::cout << "f function failed, hard" << std::endl;
     }
-    if (mGResults.first == 2) {
+    if (mGResults.first == Code::HardFail) {
         std::cout << "g function failed, hard" << std::endl;
     }
 }
@@ -208,15 +218,17 @@ void Manager::reportResults() {
 void Manager::getResults(bool f)
 {
     if (f) {
-        mFResults.first = mF.read<int>();
-        if (mFResults.first == 0) {
-            mFResults.second = mF.read<int>();
+        mFResults.first = static_cast<Code>(mF.read<int>());
+        if (mFResults.first == Code::Value) {
+            mFResults.second = mF.read<Value>();
         }
     }
     else {
-        mGResults.first = mG.read<int>();
-        if (mGResults.first == 0) {
-            mGResults.second = mG.read<int>();
+        mGResults.first = static_cast<Code>(mG.read<int>());
+        if (mGResults.first == Code::Value) {
+            mGResults.second = mG.read<Value>();
         }
     }
 }
+
+}//OS::Lab1
