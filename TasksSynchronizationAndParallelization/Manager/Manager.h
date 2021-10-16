@@ -1,5 +1,7 @@
 #include "ProcessWrapper.h"
 
+#include <utility>
+
 class Manager
 {
 public:
@@ -7,11 +9,14 @@ public:
 public:
 	void run();
 private:
+	using Results = std::pair<int, int>;
+private:
 	void performSingleComputation(int x, uint32_t amountOfAttempts);
-	bool processResults();
+	void reportResults();
+	void getResults(bool f);
 private:
 	ProcessWrapper mF;
 	ProcessWrapper mG;
-	bool mFComputed;
-	bool mGComputed;
+	Results mFResults;
+	Results mGResults;
 };

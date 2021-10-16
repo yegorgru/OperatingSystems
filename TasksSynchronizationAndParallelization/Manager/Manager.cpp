@@ -10,7 +10,7 @@
 
 namespace {
     void resetKeyStates() {
-        std::vector<char> keys{ 78, 89, 27, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57 };
+        std::vector<char> keys{ 13, 78, 89, 27, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57 };
         for (auto key : keys) {
             GetAsyncKeyState(key) & 0x0001;
         }
@@ -70,8 +70,8 @@ namespace {
 Manager::Manager()
     : mF("f.exe")
     , mG("g.exe")
-    , mFComputed(false)
-    , mGComputed(false)
+    , mFResults{-1, -1}
+    , mGResults{ -1, -1 }
 {
 
 }
@@ -105,29 +105,50 @@ void Manager::run()
 
 void Manager::performSingleComputation(int x, uint32_t amountOfAttempts)
 {
-    mFComputed = false;
-    mGComputed = false;
+    mFResults = {-1, -1};
+    mGResults = { -1, -1 };
     for (uint32_t i = 0; i < amountOfAttempts; i++) {
         std::cout << "Computations have started. Attempt #" << i + 1 << std::endl;
-        if (!mFComputed) {
+        if (mFResults.first == -1) {
             mF.start();
             mF.write<int>(x);
         }
-        if (!mGComputed) {
+        if (mGResults.first == -1) {
             mG.start();
             mG.write<int>(x);
         }
         resetKeyStates();
         while (mF.running() || mG.running()) {
+            if (mFResults.first == -1 && !mF.running()) {
+                getResults(true);
+                if (mFResults.first == 2) {
+                    reportResults();
+                    return;
+                }
+            }
+            if (mGResults.first == -1 && !mG.running()) {
+                getResults(false);
+                if (mGResults.first == 2) {
+                    reportResults();
+                    return;
+                }
+            }
             if (GetAsyncKeyState(27) & 0x0001) {
                 switch (confirm("Please confirm that computation should be stopped y(es, stop)/n(ot yet) [n]", 5)) {
                 case ConfirmationResult::Yes: {
-                    if (!mF.running() && !mG.running()) {
+                    if (!mF.running() && mFResults.first == -1) {
+                        getResults(true);
+                    }
+                    if (!mG.running() && mGResults.first == -1) {
+                        getResults(false);
+                    }
+                    if (mFResults.first == 2 || mGResults.first == 2 || mFResults.first == 0 && mGResults.first == 0) 
+                    {
                         std::cout << "overridden by system" << std::endl;
+                        reportResults();
+                        return;
                     }
-                    else {
-                        std::cout << "Computation was canceled." << std::endl;
-                    }
+                    std::cout << "Computation was canceled." << std::endl;
                     if (mF.running()) {
                         std::cout << "f did not finish. " << std::endl;
                         mF.terminate();
@@ -136,48 +157,66 @@ void Manager::performSingleComputation(int x, uint32_t amountOfAttempts)
                         std::cout << "g did not finish. " << std::endl;
                         mG.terminate();
                     }
-                    break;
+                    reportResults();
+                    return;
                 }
                 case ConfirmationResult::No: {
                     std::cout << "Action was not confirmed" << std::endl;
                     break;
                 }
                 case ConfirmationResult::Timeout: {
-                    std::cout << "Action is not confirmed within 5s proceeding..." << std::endl;
+                    std::cout << "Action is not confirmed within 5s. proceeding..." << std::endl;
                     break;
                 }
                 }
             }
         }
-
-        if (processResults()) {
+        if (mFResults.first == -1) {
+            getResults(true);
+        }
+        if (mGResults.first == -1) {
+            getResults(false);
+        }
+        reportResults();
+        if (!(mFResults.first == 1 && mGResults.first != 2 || mFResults.first != 2 && mGResults.first == 1)) {
             return;
         }
+        mFResults.first = mFResults.first == 1 ? -1 : mFResults.first;
+        mGResults.first = mGResults.first == 1 ? -1 : mGResults.first;
     }
     std::cout << "Maximum amount of attempts is reached" << std::endl;
 }
 
-bool Manager::processResults() {
-    auto fCode = mF.read<int>();
-    auto gCode = mG.read<int>();
-    if (fCode == 0 && gCode == 0) {
-        auto fResult = mF.read<int>();
-        auto gResult = mG.read<int>();
-        std::cout << "Result: " << static_cast<int64_t>(fResult) + gResult << std::endl;
+void Manager::reportResults() {
+    if (mFResults.first == 0 && mGResults.first == 0) {
+        std::cout << "Result: " << static_cast<int64_t>(mFResults.second) + mGResults.second << std::endl;
     }
-    if (fCode == 1) {
+    if (mFResults.first == 1) {
         std::cout << "f function failed, soft" << std::endl;
     }
-    if (gCode == 1) {
+    if (mGResults.first == 1) {
         std::cout << "g function failed, soft" << std::endl;
     }
-    if (fCode == 2) {
+    if (mFResults.first == 2) {
         std::cout << "f function failed, hard" << std::endl;
     }
-    if (gCode == 2) {
+    if (mGResults.first == 2) {
         std::cout << "g function failed, hard" << std::endl;
     }
-    mFComputed = fCode != 1;
-    mGComputed = gCode != 1;
-    return fCode != 1 && gCode != 1;
+}
+
+void Manager::getResults(bool f)
+{
+    if (f) {
+        mFResults.first = mF.read<int>();
+        if (mFResults.first == 0) {
+            mFResults.second = mF.read<int>();
+        }
+    }
+    else {
+        mGResults.first = mG.read<int>();
+        if (mGResults.first == 0) {
+            mGResults.second = mG.read<int>();
+        }
+    }
 }
