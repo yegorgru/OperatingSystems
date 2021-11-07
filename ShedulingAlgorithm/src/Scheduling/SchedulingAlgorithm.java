@@ -11,13 +11,13 @@ public class SchedulingAlgorithm {
     private ArrayList<Process> processes;
     private int runTime;
 
-    public void run() {
+    public void run(String path) {
         runTime = 0;
         int currentProcessIdx = 0;
         int size = processes.size();
         int completed = 0;
         try {
-            PrintStream out = new PrintStream(new FileOutputStream("Summary-Processes"));
+            PrintStream out = new PrintStream(new FileOutputStream(path));
             Process process = processes.get(currentProcessIdx);
             register(out, currentProcessIdx);
             while (runTime < options.getRunTime()) {
@@ -74,9 +74,9 @@ public class SchedulingAlgorithm {
         }
     }
 
-    public void reportResults(String fileName) {
+    public void reportResults(String path) {
         try {
-            PrintStream out = new PrintStream(new FileOutputStream(fileName));
+            PrintStream out = new PrintStream(new FileOutputStream(path));
             out.println("Scheduling Type: Batch (Nonpreemptive)");
             out.println("Scheduling Name: First-Come First-Served");
             out.println("Simulation Run Time: " + runTime);

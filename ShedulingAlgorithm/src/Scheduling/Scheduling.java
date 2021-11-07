@@ -10,8 +10,8 @@ public class Scheduling {
         System.out.println("Init...");
         algorithm.init(args[0]);
         System.out.println("Running processes...");
-        algorithm.run();
-        algorithm.reportResults("Summary-Results");
+        algorithm.run("Summary-Processes.txt");
+        algorithm.reportResults("Summary-Results.txt");
         System.out.println("Completed.");
     }
 }
