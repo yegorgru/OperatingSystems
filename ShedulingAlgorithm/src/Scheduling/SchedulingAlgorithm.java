@@ -3,71 +3,65 @@ package Scheduling;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Random;
+import java.util.Scanner;
 import java.util.StringTokenizer;
 
 public class SchedulingAlgorithm {
     private Options options;
-    private ArrayList<SProcess> processes;
-    private static Results result = new Results("null","null",0);
+    private ArrayList<Process> processes;
+    private int runTime;
 
     public void run() {
-        int compTime = 0;
-        int currentProcess = 0;
-        int previousProcess = 0;
+        runTime = 0;
+        int currentProcessIdx = 0;
         int size = processes.size();
         int completed = 0;
-        String resultsFile = "Summary-Processes";
-
-        result.schedulingType = "Batch (Nonpreemptive)";
-        result.schedulingName = "First-Come First-Served";
         try {
-            PrintStream out = new PrintStream(new FileOutputStream(resultsFile));
-            SProcess process = processes.get(currentProcess);
-            out.println("Process: " + currentProcess + " registered... (" + process.cputime + " " + process.ioblocking + " " + process.cpudone + " " + process.cpudone + ")");
-            while (compTime < options.getRunTime()) {
-                if (process.cpudone == process.cputime) {
-                    completed++;
-                    out.println("Process: " + currentProcess + " completed... (" + process.cputime + " " + process.ioblocking + " " + process.cpudone + " " + process.cpudone + ")");
-                    if (completed == size) {
-                        result.compuTime = compTime;
-                        out.close();
-                        return;
-                    }
-                    for (int i = size - 1; i >= 0; i--) {
-                        process = processes.get(i);
-                        if (process.cpudone < process.cputime) {
-                            currentProcess = i;
+            PrintStream out = new PrintStream(new FileOutputStream("Summary-Processes"));
+            Process process = processes.get(currentProcessIdx);
+            register(out, currentProcessIdx);
+            while (runTime < options.getRunTime()) {
+                switch(process.getStatus()) {
+                    case COMPLETED:
+                        completed++;
+                        complete(out, currentProcessIdx);
+                        if (completed == size) {
+                            out.close();
+                            return;
                         }
-                    }
-                    process = processes.get(currentProcess);
-                    out.println("Process: " + currentProcess + " registered... (" + process.cputime + " " + process.ioblocking + " " + process.cpudone + " " + process.cpudone + ")");
-                }
-                if (process.ioblocking == process.ionext) {
-                    out.println("Process: " + currentProcess + " I/O blocked... (" + process.cputime + " " + process.ioblocking + " " + process.cpudone + " " + process.cpudone + ")");
-                    process.numblocked++;
-                    process.ionext = 0;
-                    previousProcess = currentProcess;
-                    for (int i = size - 1; i >= 0; i--) {
-                        process = processes.get(i);
-                        if (process.cpudone < process.cputime && previousProcess != i) {
-                            currentProcess = i;
+                        for (int i = 0; i < processes.size(); i++) {
+                            process = processes.get(i);
+                            if (process.getCpuDone() < process.getCpuTime()) {
+                                currentProcessIdx = i;
+                                break;
+                            }
                         }
-                    }
-                    process = processes.get(currentProcess);
-                    out.println("Process: " + currentProcess + " registered... (" + process.cputime + " " + process.ioblocking + " " + process.cpudone + " " + process.cpudone + ")");
+                        process = processes.get(currentProcessIdx);
+                        register(out, currentProcessIdx);
+                        break;
+                    case BLOCKED:
+                        block(out, currentProcessIdx);
+                        for (int i = 0; i < processes.size(); i++) {
+                            process = processes.get(i);
+                            if (process.getCpuDone() < process.cpuTime && currentProcessIdx != i) {
+                                currentProcessIdx = i;
+                                break;
+                            }
+                        }
+                        process = processes.get(currentProcessIdx);
+                        register(out, currentProcessIdx);
+                        break;
+                    case RUNNING:
+                        break;
                 }
-                process.cpudone++;
-                if (process.ioblocking > 0) {
-                    process.ionext++;
-                }
-                compTime++;
+                process.step();
+                runTime++;
             }
             out.close();
         } catch (IOException e) {
             System.out.println("Error while running: " + e.getMessage());
             System.exit(-1);
         }
-        result.compuTime = compTime;
     }
 
     public void init(String filePath) {
@@ -75,41 +69,51 @@ public class SchedulingAlgorithm {
         processes = new ArrayList<>();
         parseConfigFile(filePath);
         for (int i = 0; i < options.getProcessNumber() - processes.size(); i++) {
-            double X = Utils.generateCoef();
-            X = X * options.getStandardDeviation();
-            int cpuTime = (int) X + options.getMeanDeviation();
-            processes.add(new SProcess(cpuTime,i*100,0,0,0));
+            processes.add(new Process(generateCpuTime(),i*100));
             i++;
         }
     }
 
     public void reportResults(String fileName) {
         try {
-            //BufferedWriter out = new BufferedWriter(new FileWriter(resultsFile));
             PrintStream out = new PrintStream(new FileOutputStream(fileName));
-            out.println("Scheduling Type: " + result.schedulingType);
-            out.println("Scheduling Name: " + result.schedulingName);
-            out.println("Simulation Run Time: " + result.compuTime);
-            out.println("Mean: " + options.getMeanDeviation());
+            out.println("Scheduling Type: Batch (Nonpreemptive)");
+            out.println("Scheduling Name: First-Come First-Served");
+            out.println("Simulation Run Time: " + runTime);
+            out.println("Mean Deviation: " + options.getMeanDeviation());
             out.println("Standard Deviation: " + options.getStandardDeviation());
-            out.println("Process #\tCPU Time\tIO Blocking\tCPU Completed\tCPU Blocked");
+            out.println("Process #\t\tCPU Time\t\tIO Blocking\t\tCPU Completed\t\tCPU Blocked");
             for (int i = 0; i < processes.size(); i++) {
-                SProcess process = processes.get(i);
-                out.print(i);
-                if (i < 100) { out.print("\t\t"); } else { out.print("\t"); }
-                out.print(process.cputime);
-                if (process.cputime < 100) { out.print(" (ms)\t\t"); } else { out.print(" (ms)\t"); }
-                out.print(process.ioblocking);
-                if (process.ioblocking < 100) { out.print(" (ms)\t\t"); } else { out.print(" (ms)\t"); }
-                out.print(process.cpudone);
-                if (process.cpudone < 100) { out.print(" (ms)\t\t"); } else { out.print(" (ms)\t"); }
-                out.println(process.numblocked + " times");
+                Process process = processes.get(i);
+                out.format("%4d (ms)\t\t", i);
+                out.format("%4d (ms)\t\t", process.getCpuTime());
+                out.format("%4d (ms)\t\t", process.getIoBlocking());
+                out.format("%4d (ms)\t\t\t", process.getCpuDone());
+                out.println(process.getTimesBlocked() + " times");
             }
             out.close();
         } catch (IOException e) {
             System.out.println("Error while reporting results: " + e.getMessage());
             System.exit(-1);
         }
+    }
+
+    private void register(PrintStream out, int idx) {
+        Process process = processes.get(idx);
+        out.println("Process: " + idx + " registered... (" + process.getCpuTime() + " " +
+                process.getIoBlocking() + " " + process.getCpuDone() + "). Timepoint: " + runTime);
+    }
+
+    private void block(PrintStream out, int idx) {
+        Process process = processes.get(idx);
+        out.println("Process: " + idx + " I/O blocked... (" + process.getCpuTime() +
+                " " + process.getIoBlocking() + " " + process.getCpuDone() + "). Timepoint: " + runTime);
+    }
+
+    private void complete(PrintStream out, int idx) {
+        Process process = processes.get(idx);
+        out.println("Process: " + idx + " completed... (" + process.getCpuTime() + " " +
+                process.getIoBlocking() + " " + process.getCpuDone() + "). Timepoint: " + runTime);
     }
 
     private void parseConfigFile(String filePath) {
@@ -122,46 +126,57 @@ public class SchedulingAlgorithm {
             System.out.println("Scheduling: error, read of " + file.getName() + " failed.");
             System.exit(-1);
         }
-        String line;
-        int ioBlocking = 0;
         try {
-            DataInputStream in = new DataInputStream(new FileInputStream(file));
-            while ((line = in.readLine()) != null) {
+            Scanner scanner = new Scanner(file);
+            while (scanner.hasNextLine()) {
+                String line = scanner.nextLine();
                 if (line.startsWith("numprocess")) {
                     StringTokenizer st = new StringTokenizer(line);
                     st.nextToken();
                     options.setProcessNumber(Utils.stoi(st.nextToken()));
                 }
-                if (line.startsWith("meandev")) {
+                else if (line.startsWith("meandev")) {
                     StringTokenizer st = new StringTokenizer(line);
                     st.nextToken();
                     options.setMeanDeviation(Utils.stoi(st.nextToken()));
                 }
-                if (line.startsWith("standdev")) {
+                else if (line.startsWith("standdev")) {
                     StringTokenizer st = new StringTokenizer(line);
                     st.nextToken();
                     options.setStandardDeviation(Utils.stoi(st.nextToken()));
                 }
-                if (line.startsWith("process")) {
+                else if (line.startsWith("process")) {
                     StringTokenizer st = new StringTokenizer(line);
                     st.nextToken();
-                    ioBlocking = Utils.stoi(st.nextToken());
-                    double X = Utils.generateCoef();
-                    X = X * options.getStandardDeviation();
-                    int cpuTime = (int) X + options.getMeanDeviation();
-                    processes.add(new SProcess(cpuTime, ioBlocking, 0, 0, 0));
+                    int ioBlocking = Utils.stoi(st.nextToken());
+                    processes.add(new Process(generateCpuTime(), ioBlocking));
                 }
-                if (line.startsWith("runtime")) {
+                else if (line.startsWith("runtime")) {
                     StringTokenizer st = new StringTokenizer(line);
                     st.nextToken();
                     options.setRunTime(Utils.stoi(st.nextToken()));
                 }
             }
-            in.close();
+            scanner.close();
         } catch (IOException e) {
             System.out.println("Error while parsing file: " + e.getMessage());
             System.exit(-1);
         }
+    }
+
+    private int generateCpuTime () {
+        Random generator = new Random();
+        double cpuTime = options.getMeanDeviation();
+        if(generator.nextBoolean()) {
+            cpuTime += options.getStandardDeviation() * generator.nextDouble();
+        }
+        else {
+            cpuTime -= options.getStandardDeviation() * generator.nextDouble();
+        }
+        if(cpuTime <= 0) {
+            cpuTime = Math.abs(cpuTime) + 1;
+        }
+        return (int) cpuTime;
     }
 
     private static class Utils{
@@ -173,22 +188,6 @@ public class SchedulingAlgorithm {
                 System.out.println("NumberFormatException: " + e.getMessage());
             }
             return i;
-        }
-
-        public static double generateCoef () {
-            Random generator = new Random();
-            while(true) {
-                double U = generator.nextDouble();
-                double V = generator.nextDouble();
-                double X =  Math.sqrt((8/Math.E)) * (V - 0.5)/U;
-                if ((X * X) <= (5 - 4 * Math.exp(.25) * U) ||
-                        (X * X) >= (4 * Math.exp(-1.35) / U + 1.4) ||
-                        (X * X) < (-4 * Math.log(U))
-                ) {
-                    continue;
-                }
-                return X;
-            }
         }
     }
 }
