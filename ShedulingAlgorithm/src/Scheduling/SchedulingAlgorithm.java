@@ -1,6 +1,7 @@
 package Scheduling;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -12,12 +13,36 @@ public abstract class SchedulingAlgorithm {
     protected Options options;
     protected int runTime;
     protected ArrayList<Process> processes;
+    protected String type;
+    protected String name;
 
     public abstract void run(String logPath);
 
     public abstract void init(String filePath);
-
-    public abstract void reportResults(String path);
+    public void reportResults(String path) {
+        try {
+            PrintStream out = new PrintStream(new FileOutputStream(path));
+            out.println("Scheduling Type: " + type);
+            out.println("Scheduling Name: " + name);
+            out.println("Simulation Run Time: " + runTime);
+            out.println("Mean Deviation: " + options.getMeanDeviation());
+            out.println("Standard Deviation: " + options.getStandardDeviation());
+            out.println("Process #\t\tCPU Time\t\tIO Blocking\t\tCPU Completed\t\tCPU Blocked\t\tInterrupted");
+            for (int i = 0; i < processes.size(); i++) {
+                Process process = processes.get(i);
+                out.format("%4d (ms)\t\t", i);
+                out.format("%4d (ms)\t\t", process.getCpuTime());
+                out.format("%4d (ms)\t\t", process.getIoBlocking());
+                out.format("%4d (ms)\t\t\t", process.getCpuDone());
+                out.format("%4d (ms)\t\t", process.getTimesBlocked());
+                out.println(process.getTimesInterrupted());
+            }
+            out.close();
+        } catch (IOException e) {
+            System.out.println("Error while reporting results: " + e.getMessage());
+            System.exit(-1);
+        }
+    }
 
     public SchedulingAlgorithm() {
         options = new Options();

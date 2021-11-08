@@ -31,6 +31,10 @@ public class Process {
         return timesBlocked;
     }
 
+    public int getTimesInterrupted() {
+        return timesInterrupted;
+    }
+
     public int getCpuDone() {
         return cpuDone;
     }
@@ -41,6 +45,7 @@ public class Process {
 
     public void interrupt() {
         sessionCounter = 0;
+        timesInterrupted++;
     }
 
     public Status getStatus() {
@@ -50,7 +55,7 @@ public class Process {
         if (ioBlocking == ioCounter) {
             timesBlocked++;
             ioCounter = 0;
-            interrupt();
+            sessionCounter = 0;
             return Status.BLOCKED;
         }
         return Status.RUNNING;

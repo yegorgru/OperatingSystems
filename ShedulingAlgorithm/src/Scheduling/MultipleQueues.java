@@ -9,6 +9,12 @@ import java.util.concurrent.ConcurrentSkipListMap;
 public class MultipleQueues extends SchedulingAlgorithm {
     private ConcurrentSkipListMap<Integer, ArrayList<Integer>> queues;
 
+    MultipleQueues() {
+        type = "Interactive (Preemptive)";
+        name = "Multiple queues";
+        queues = new ConcurrentSkipListMap<>();
+    }
+
     @Override
     public void run(String logPath) {
         runTime = 0;
@@ -94,35 +100,9 @@ public class MultipleQueues extends SchedulingAlgorithm {
             processes.add(new Process(generateCpuTime(),i*100));
             i++;
         }
-        queues = new ConcurrentSkipListMap<>();
         queues.put(0, new ArrayList<>());
         for(int i = 0; i < processes.size(); i++) {
             queues.get(0).add(i);
-        }
-    }
-
-    @Override
-    public void reportResults(String path) {
-        try {
-            PrintStream out = new PrintStream(new FileOutputStream(path));
-            out.println("Scheduling Type: Interactive (Preemptive)");
-            out.println("Scheduling Name: Multiple queues");
-            out.println("Simulation Run Time: " + runTime);
-            out.println("Mean Deviation: " + options.getMeanDeviation());
-            out.println("Standard Deviation: " + options.getStandardDeviation());
-            out.println("Process #\t\tCPU Time\t\tIO Blocking\t\tCPU Completed\t\tCPU Blocked");
-            for (int i = 0; i < processes.size(); i++) {
-                Process process = processes.get(i);
-                out.format("%4d (ms)\t\t", i);
-                out.format("%4d (ms)\t\t", process.getCpuTime());
-                out.format("%4d (ms)\t\t", process.getIoBlocking());
-                out.format("%4d (ms)\t\t\t", process.getCpuDone());
-                out.println(process.getTimesBlocked() + " times");
-            }
-            out.close();
-        } catch (IOException e) {
-            System.out.println("Error while reporting results: " + e.getMessage());
-            System.exit(-1);
         }
     }
 }
