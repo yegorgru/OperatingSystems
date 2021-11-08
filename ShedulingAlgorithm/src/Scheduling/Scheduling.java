@@ -2,7 +2,7 @@ package Scheduling;
 
 public class Scheduling {
     public static void main(String[] args) {
-        SchedulingAlgorithm algorithm = new SchedulingAlgorithm();
+        SchedulingAlgorithm algorithm = new FirstComeFirstServed();
         if (args.length != 1) {
             System.out.println("Usage: 'java Scheduling <CONFIG FILE>'");
             System.exit(-1);
