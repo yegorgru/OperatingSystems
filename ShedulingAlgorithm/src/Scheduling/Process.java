@@ -1,18 +1,22 @@
 package Scheduling;
 
 public class Process {
-    public int cpuTime;
-    public int ioBlocking;
-    public int cpuDone;
-    public int ioCounter;
-    public int timesBlocked;
+    private final int cpuTime;
+    private final int ioBlocking;
+    private int cpuDone;
+    private int ioCounter;
+    private int sessionCounter;
+    private int timesBlocked;
+    private int timesInterrupted;
 
     public Process(int cpuTime, int ioBlocking) {
         this.cpuTime = cpuTime;
         this.ioBlocking = ioBlocking;
         this.cpuDone = 0;
         this.ioCounter = 0;
+        this.sessionCounter = 0;
         this.timesBlocked = 0;
+        this.timesInterrupted = 0;
     }
 
     public int getCpuTime() {
@@ -31,6 +35,14 @@ public class Process {
         return cpuDone;
     }
 
+    public int getSessionCounter() {
+        return sessionCounter;
+    }
+
+    public void interrupt() {
+        sessionCounter = 0;
+    }
+
     public Status getStatus() {
         if (cpuDone == cpuTime) {
             return Status.COMPLETED;
@@ -38,6 +50,7 @@ public class Process {
         if (ioBlocking == ioCounter) {
             timesBlocked++;
             ioCounter = 0;
+            interrupt();
             return Status.BLOCKED;
         }
         return Status.RUNNING;
@@ -45,9 +58,8 @@ public class Process {
 
     public void step() {
         cpuDone++;
-        if (ioBlocking > 0) {
-            ioCounter++;
-        }
+        ioCounter++;
+        sessionCounter++;
     }
 
     public enum Status {

@@ -19,22 +19,34 @@ public abstract class SchedulingAlgorithm {
 
     public abstract void reportResults(String path);
 
-    protected void register(PrintStream out, int idx) {
+    public SchedulingAlgorithm() {
+        options = new Options();
+        processes = new ArrayList<>();
+    }
+
+    protected void register(PrintStream out, int idx, String message) {
         Process process = processes.get(idx);
         out.println("Process: " + idx + " registered... (" + process.getCpuTime() + " " +
-                process.getIoBlocking() + " " + process.getCpuDone() + "). Timepoint: " + runTime);
+                process.getIoBlocking() + " " + process.getCpuDone() + "). Timepoint: " + runTime + " " + message);
     }
 
-    protected void block(PrintStream out, int idx) {
+    protected void block(PrintStream out, int idx, String message) {
         Process process = processes.get(idx);
         out.println("Process: " + idx + " I/O blocked... (" + process.getCpuTime() +
-                " " + process.getIoBlocking() + " " + process.getCpuDone() + "). Timepoint: " + runTime);
+                " " + process.getIoBlocking() + " " + process.getCpuDone() + "). Timepoint: " + runTime + " " +
+                message);
     }
 
-    protected void complete(PrintStream out, int idx) {
+    protected void complete(PrintStream out, int idx, String message) {
         Process process = processes.get(idx);
         out.println("Process: " + idx + " completed... (" + process.getCpuTime() + " " +
-                process.getIoBlocking() + " " + process.getCpuDone() + "). Timepoint: " + runTime);
+                process.getIoBlocking() + " " + process.getCpuDone() + "). Timepoint: " + runTime + " " + message);
+    }
+
+    protected void interrupt(PrintStream out, int idx, String message) {
+        Process process = processes.get(idx);
+        out.println("Process: " + idx + " reached the limit... (" + process.getCpuTime() + " " +
+                process.getIoBlocking() + " " + process.getCpuDone() + "). Timepoint: " + runTime + " " + message);
     }
 
     protected int generateCpuTime () {
@@ -91,6 +103,11 @@ public abstract class SchedulingAlgorithm {
                     StringTokenizer st = new StringTokenizer(line);
                     st.nextToken();
                     options.setRunTime(Utils.stoi(st.nextToken()));
+                }
+                else if (line.startsWith("quantum")) {
+                    StringTokenizer st = new StringTokenizer(line);
+                    st.nextToken();
+                    options.setQuantum(Utils.stoi(st.nextToken()));
                 }
             }
             scanner.close();

@@ -5,6 +5,7 @@ public class Options {
     private int meanDeviation;
     private int standardDeviation;
     private int runTime;
+    private int quantum;
 
     public Options() {
         runTime = 1000;
@@ -43,5 +44,13 @@ public class Options {
 
     public int getRunTime() {
         return runTime;
+    }
+
+    public void setQuantum(int value) {
+        quantum = value;
+    }
+
+    public int getQuantum() {
+        return quantum;
     }
 }
