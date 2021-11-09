@@ -1,8 +1,11 @@
 package Scheduling;
 
+import java.util.ArrayList;
+
 public class Process {
     private final int cpuTime;
-    private final int ioBlocking;
+    private  final ArrayList<Integer> ioBlocking;
+    private int currentIoBlock;
     private int cpuDone;
     private int ioCounter;
     private int sessionCounter;
@@ -10,9 +13,10 @@ public class Process {
     private int timesInterrupted;
     private boolean resetSessionCounter;
 
-    public Process(int cpuTime, int ioBlocking) {
+    public Process(int cpuTime, ArrayList<Integer> ioBlocking) {
         this.cpuTime = cpuTime;
         this.ioBlocking = ioBlocking;
+        this.currentIoBlock = 0;
         this.cpuDone = 0;
         this.ioCounter = 0;
         this.sessionCounter = 0;
@@ -26,7 +30,7 @@ public class Process {
     }
 
     public int getIoBlocking() {
-        return ioBlocking;
+        return ioBlocking.get(currentIoBlock);
     }
 
     public int getTimesBlocked() {
@@ -54,7 +58,8 @@ public class Process {
         if (cpuDone == cpuTime) {
             return Status.COMPLETED;
         }
-        if (ioBlocking == ioCounter) {
+        if (ioBlocking.get(currentIoBlock) == ioCounter) {
+            currentIoBlock = (currentIoBlock + 1) % ioBlocking.size();
             timesBlocked++;
             ioCounter = 0;
             if(resetSessionCounter) {

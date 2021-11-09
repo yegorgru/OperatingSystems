@@ -3,6 +3,7 @@ package Scheduling;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.ArrayList;
 
 public class FirstComeFirstServed extends SchedulingAlgorithm {
     FirstComeFirstServed() {
@@ -67,7 +68,9 @@ public class FirstComeFirstServed extends SchedulingAlgorithm {
     public void init(String filePath) {
         parseConfigFile(filePath);
         for (int i = 0; i < options.getProcessNumber() - processes.size(); i++) {
-            processes.add(new Process(generateCpuTime(),i*100));
+            ArrayList<Integer> ioBlocking = new ArrayList<>();
+            ioBlocking.add((i+1)*100);
+            processes.add(new Process(generateCpuTime(),ioBlocking));
             i++;
         }
     }

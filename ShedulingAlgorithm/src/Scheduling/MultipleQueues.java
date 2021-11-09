@@ -103,7 +103,9 @@ public class MultipleQueues extends SchedulingAlgorithm {
     public void init(String filePath) {
         parseConfigFile(filePath);
         for (int i = 0; i < options.getProcessNumber() - processes.size(); i++) {
-            processes.add(new Process(generateCpuTime(),(i+1)*100));
+            ArrayList<Integer> ioBlocking = new ArrayList<>();
+            ioBlocking.add((i+1)*100);
+            processes.add(new Process(generateCpuTime(), ioBlocking));
             if(options.getResetSessionCounter()) {
                 processes.get(i).setResetSessionCounter(true);
             }

@@ -27,12 +27,12 @@ public abstract class SchedulingAlgorithm {
             out.println("Simulation Run Time: " + runTime);
             out.println("Mean Deviation: " + options.getMeanDeviation());
             out.println("Standard Deviation: " + options.getStandardDeviation());
-            out.println("Process #\t\tCPU Time\t\tIO Blocking\t\tCPU Completed\t\tCPU Blocked\t\tInterrupted");
+            out.println("Process #\t\tCPU Time\t\tIO Last Blocking\t\tCPU Completed\t\tCPU Blocked\t\tInterrupted");
             for (int i = 0; i < processes.size(); i++) {
                 Process process = processes.get(i);
                 out.format("%4d (ms)\t\t", i);
                 out.format("%4d (ms)\t\t", process.getCpuTime());
-                out.format("%4d (ms)\t\t", process.getIoBlocking());
+                out.format("%4d (ms)\t\t\t", process.getIoBlocking());
                 out.format("%4d (ms)\t\t\t", process.getCpuDone());
                 out.format("%4d (ms)\t\t", process.getTimesBlocked());
                 out.println(process.getTimesInterrupted());
@@ -120,8 +120,11 @@ public abstract class SchedulingAlgorithm {
                 }
                 else if (line.startsWith("process")) {
                     StringTokenizer st = new StringTokenizer(line);
+                    ArrayList<Integer> ioBlocking = new ArrayList<>();
                     st.nextToken();
-                    int ioBlocking = Utils.stoi(st.nextToken());
+                    while(st.hasMoreTokens()) {
+                        ioBlocking.add(Utils.stoi(st.nextToken()));
+                    }
                     processes.add(new Process(generateCpuTime(), ioBlocking));
                     if(options.getResetSessionCounter()) {
                         processes.get(processes.size() - 1).setResetSessionCounter(true);
