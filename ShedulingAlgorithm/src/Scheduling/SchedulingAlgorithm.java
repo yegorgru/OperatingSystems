@@ -134,6 +134,11 @@ public abstract class SchedulingAlgorithm {
                     st.nextToken();
                     options.setQuantum(Utils.stoi(st.nextToken()));
                 }
+                else if (line.startsWith("increasing")) {
+                    StringTokenizer st = new StringTokenizer(line);
+                    st.nextToken();
+                    options.setIncreasing(Utils.stoi(st.nextToken()));
+                }
             }
             scanner.close();
         } catch (IOException e) {

@@ -6,12 +6,14 @@ public class Options {
     private int standardDeviation;
     private int runTime;
     private int quantum;
+    private int increasing;
 
     public Options() {
         runTime = 1000;
         standardDeviation = 100;
         meanDeviation = 1000;
         processNumber = 5;
+        increasing = 0;
     }
 
     public void setProcessNumber(int value) {
@@ -52,5 +54,13 @@ public class Options {
 
     public int getQuantum() {
         return quantum;
+    }
+
+    public void setIncreasing(int value) {
+        increasing = value;
+    }
+
+    public int getIncreasing() {
+        return increasing;
     }
 }

@@ -27,6 +27,12 @@ public class MultipleQueues extends SchedulingAlgorithm {
             Process currentProcess = processes.get(currentProcessIdx);
             register(out, currentProcessIdx, "Priority: " + currentPriority);
             while (runTime < options.getRunTime()) {
+                if(runTime != 0 && options.getIncreasing() > 0 && runTime % options.getIncreasing() == 0) {
+                    for(int priority = currentPriority + 1; priority <= queues.lastEntry().getKey(); priority++) {
+                        queues.get(currentPriority).addAll(queues.get(priority));
+                        queues.get(priority).clear();
+                    }
+                }
                 switch(currentProcess.getStatus()) {
                     case COMPLETED:
                         completed++;
