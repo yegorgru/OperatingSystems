@@ -19,20 +19,21 @@ public abstract class SchedulingAlgorithm {
     public abstract void run(String logPath);
 
     public abstract void init(String filePath);
+    
     public void reportResults(String path) {
         try {
             PrintStream out = new PrintStream(new FileOutputStream(path));
             out.println("Scheduling Type: " + type);
             out.println("Scheduling Name: " + name);
             out.println("Simulation Run Time: " + runTime);
-            out.println("Mean Deviation: " + options.getMeanDeviation());
-            out.println("Standard Deviation: " + options.getStandardDeviation());
-            out.println("Process #\t\tCPU Time\t\tIO Last Blocking\t\tCPU Completed\t\tCPU Blocked\t\tInterrupted");
+            out.println("Mean Deviation: " + options.getAverageDuration());
+            out.println("Standard Deviation: " + options.getDeviation());
+            out.println("Process #\t\tCPU Time\t\tIO Blocking\t\tCPU Completed\t\tCPU Blocked\t\tInterrupted");
             for (int i = 0; i < processes.size(); i++) {
                 Process process = processes.get(i);
                 out.format("%4d (ms)\t\t", i);
                 out.format("%4d (ms)\t\t", process.getCpuTime());
-                out.format("%4d (ms)\t\t\t", process.getIoBlocking());
+                out.format("%4d (ms)\t\t", process.getIoBlocking());
                 out.format("%4d (ms)\t\t\t", process.getCpuDone());
                 out.format("%4d (ms)\t\t", process.getTimesBlocked());
                 out.println(process.getTimesInterrupted());
@@ -76,12 +77,12 @@ public abstract class SchedulingAlgorithm {
 
     protected int generateCpuTime () {
         Random generator = new Random();
-        double cpuTime = options.getMeanDeviation();
+        double cpuTime = options.getAverageDuration();
         if(generator.nextBoolean()) {
-            cpuTime += options.getStandardDeviation() * generator.nextDouble();
+            cpuTime += options.getDeviation() * generator.nextDouble();
         }
         else {
-            cpuTime -= options.getStandardDeviation() * generator.nextDouble();
+            cpuTime -= options.getDeviation() * generator.nextDouble();
         }
         if(cpuTime <= 0) {
             cpuTime = Math.abs(cpuTime) + 1;
@@ -108,15 +109,15 @@ public abstract class SchedulingAlgorithm {
                     st.nextToken();
                     options.setProcessNumber(Utils.stoi(st.nextToken()));
                 }
-                else if (line.startsWith("meandev")) {
+                else if (line.startsWith("average_duration")) {
                     StringTokenizer st = new StringTokenizer(line);
                     st.nextToken();
-                    options.setMeanDeviation(Utils.stoi(st.nextToken()));
+                    options.setAverageDuration(Utils.stoi(st.nextToken()));
                 }
-                else if (line.startsWith("standdev")) {
+                else if (line.startsWith("deviation")) {
                     StringTokenizer st = new StringTokenizer(line);
                     st.nextToken();
-                    options.setStandardDeviation(Utils.stoi(st.nextToken()));
+                    options.setDeviation(Utils.stoi(st.nextToken()));
                 }
                 else if (line.startsWith("process")) {
                     StringTokenizer st = new StringTokenizer(line);

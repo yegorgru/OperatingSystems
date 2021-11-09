@@ -2,8 +2,8 @@ package Scheduling;
 
 public class Options {
     private int processNumber;
-    private int meanDeviation;
-    private int standardDeviation;
+    private int averageDuration;
+    private int deviation;
     private int runTime;
     private int quantum;
     private int increasingPriority;
@@ -12,8 +12,8 @@ public class Options {
 
     public Options() {
         runTime = 1000;
-        standardDeviation = 100;
-        meanDeviation = 1000;
+        deviation = 100;
+        averageDuration = 1000;
         processNumber = 5;
         increasingPriority = 0;
         resetSessionCounter = false;
@@ -28,20 +28,20 @@ public class Options {
         return processNumber;
     }
 
-    public void setMeanDeviation(int value) {
-        meanDeviation = value;
+    public void setAverageDuration(int value) {
+        averageDuration = value;
     }
 
-    public int getMeanDeviation() {
-        return meanDeviation;
+    public int getAverageDuration() {
+        return averageDuration;
     }
 
-    public void setStandardDeviation(int value) {
-        standardDeviation = value;
+    public void setDeviation(int value) {
+        deviation = value;
     }
 
-    public int getStandardDeviation() {
-        return standardDeviation;
+    public int getDeviation() {
+        return deviation;
     }
 
     public void setRunTime(int value) {

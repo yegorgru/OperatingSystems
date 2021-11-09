@@ -8,7 +8,7 @@ import java.util.ArrayList;
 public class FirstComeFirstServed extends SchedulingAlgorithm {
     FirstComeFirstServed() {
         type = "Batch (Nonpreemptive)";
-        name = "First-Come First-Served";
+        name = "First Come First Served";
     }
 
     @Override
