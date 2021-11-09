@@ -8,6 +8,7 @@ public class Process {
     private int sessionCounter;
     private int timesBlocked;
     private int timesInterrupted;
+    private boolean resetSessionCounter;
 
     public Process(int cpuTime, int ioBlocking) {
         this.cpuTime = cpuTime;
@@ -17,6 +18,7 @@ public class Process {
         this.sessionCounter = 0;
         this.timesBlocked = 0;
         this.timesInterrupted = 0;
+        this.resetSessionCounter = false;
     }
 
     public int getCpuTime() {
@@ -55,7 +57,9 @@ public class Process {
         if (ioBlocking == ioCounter) {
             timesBlocked++;
             ioCounter = 0;
-            sessionCounter = 0;
+            if(resetSessionCounter) {
+                sessionCounter = 0;
+            }
             return Status.BLOCKED;
         }
         return Status.RUNNING;
@@ -65,6 +69,10 @@ public class Process {
         cpuDone++;
         ioCounter++;
         sessionCounter++;
+    }
+
+    public void setResetSessionCounter(boolean value) {
+        resetSessionCounter = value;
     }
 
     public enum Status {

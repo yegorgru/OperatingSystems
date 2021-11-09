@@ -6,14 +6,18 @@ public class Options {
     private int standardDeviation;
     private int runTime;
     private int quantum;
-    private int increasing;
+    private int increasingPriority;
+    private boolean resetSessionCounter;
+    private int quantumIncreaseBase;
 
     public Options() {
         runTime = 1000;
         standardDeviation = 100;
         meanDeviation = 1000;
         processNumber = 5;
-        increasing = 0;
+        increasingPriority = 0;
+        resetSessionCounter = false;
+        quantumIncreaseBase = 2;
     }
 
     public void setProcessNumber(int value) {
@@ -56,11 +60,27 @@ public class Options {
         return quantum;
     }
 
-    public void setIncreasing(int value) {
-        increasing = value;
+    public void setQuantumIncreaseBase(int value) {
+        quantumIncreaseBase = value;
     }
 
-    public int getIncreasing() {
-        return increasing;
+    public int getQuantumIncreaseBase() {
+        return quantumIncreaseBase;
+    }
+
+    public void setIncreasingPriority(int value) {
+        increasingPriority = value;
+    }
+
+    public int getIncreasingPriority() {
+        return increasingPriority;
+    }
+
+    public void setResetSessionCounter(boolean value) {
+        resetSessionCounter = value;
+    }
+
+    public boolean getResetSessionCounter() {
+        return resetSessionCounter;
     }
 }

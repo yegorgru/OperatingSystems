@@ -27,7 +27,7 @@ public class MultipleQueues extends SchedulingAlgorithm {
             Process currentProcess = processes.get(currentProcessIdx);
             register(out, currentProcessIdx, "Priority: " + currentPriority);
             while (runTime < options.getRunTime()) {
-                if(runTime != 0 && options.getIncreasing() > 0 && runTime % options.getIncreasing() == 0) {
+                if(runTime != 0 && options.getIncreasingPriority() > 0 && runTime % options.getIncreasingPriority() == 0) {
                     for(int priority = currentPriority + 1; priority <= queues.lastEntry().getKey(); priority++) {
                         queues.get(currentPriority).addAll(queues.get(priority));
                         queues.get(priority).clear();
@@ -65,8 +65,8 @@ public class MultipleQueues extends SchedulingAlgorithm {
                         register(out, currentProcessIdx, "Priority: " + currentPriority);
                         break;
                     case RUNNING:
-                        if(currentProcess.getSessionCounter() ==
-                                (int) Math.pow(2, currentPriority) * options.getQuantum())
+                        if(currentProcess.getSessionCounter() >=
+                                (int) Math.pow(options.getQuantumIncreaseBase(), currentPriority) * options.getQuantum())
                         {
                             interrupt(out, currentProcessIdx, "Priority: " + currentPriority);
                             currentProcess.interrupt();
@@ -103,7 +103,10 @@ public class MultipleQueues extends SchedulingAlgorithm {
     public void init(String filePath) {
         parseConfigFile(filePath);
         for (int i = 0; i < options.getProcessNumber() - processes.size(); i++) {
-            processes.add(new Process(generateCpuTime(),i*100));
+            processes.add(new Process(generateCpuTime(),(i+1)*100));
+            if(options.getResetSessionCounter()) {
+                processes.get(i).setResetSessionCounter(true);
+            }
             i++;
         }
         queues.put(0, new ArrayList<>());

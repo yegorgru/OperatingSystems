@@ -123,21 +123,32 @@ public abstract class SchedulingAlgorithm {
                     st.nextToken();
                     int ioBlocking = Utils.stoi(st.nextToken());
                     processes.add(new Process(generateCpuTime(), ioBlocking));
+                    if(options.getResetSessionCounter()) {
+                        processes.get(processes.size() - 1).setResetSessionCounter(true);
+                    }
                 }
                 else if (line.startsWith("runtime")) {
                     StringTokenizer st = new StringTokenizer(line);
                     st.nextToken();
                     options.setRunTime(Utils.stoi(st.nextToken()));
                 }
+                else if (line.startsWith("quantum_increase_base")) {
+                    StringTokenizer st = new StringTokenizer(line);
+                    st.nextToken();
+                    options.setQuantumIncreaseBase(Utils.stoi(st.nextToken()));
+                }
                 else if (line.startsWith("quantum")) {
                     StringTokenizer st = new StringTokenizer(line);
                     st.nextToken();
                     options.setQuantum(Utils.stoi(st.nextToken()));
                 }
-                else if (line.startsWith("increasing")) {
+                else if (line.startsWith("priority_increasing")) {
                     StringTokenizer st = new StringTokenizer(line);
                     st.nextToken();
-                    options.setIncreasing(Utils.stoi(st.nextToken()));
+                    options.setIncreasingPriority(Utils.stoi(st.nextToken()));
+                }
+                else if (line.startsWith("reset_session_counter")) {
+                    options.setResetSessionCounter(true);
                 }
             }
             scanner.close();
