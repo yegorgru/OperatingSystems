@@ -16,6 +16,9 @@ public class Process {
     public Process(int cpuTime, ArrayList<Integer> ioBlocking) {
         this.cpuTime = cpuTime;
         this.ioBlocking = ioBlocking;
+        if(this.ioBlocking.size() == 0) {
+            this.ioBlocking.add(cpuTime + 1);
+        }
         this.currentIoBlock = 0;
         this.cpuDone = 0;
         this.ioCounter = 0;

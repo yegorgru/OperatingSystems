@@ -19,15 +19,15 @@ public abstract class SchedulingAlgorithm {
     public abstract void run(String logPath);
 
     public abstract void init(String filePath);
-    
+
     public void reportResults(String path) {
         try {
             PrintStream out = new PrintStream(new FileOutputStream(path));
             out.println("Scheduling Type: " + type);
             out.println("Scheduling Name: " + name);
             out.println("Simulation Run Time: " + runTime);
-            out.println("Mean Deviation: " + options.getAverageDuration());
-            out.println("Standard Deviation: " + options.getDeviation());
+            out.println("Average duration: " + options.getAverageDuration());
+            out.println("Deviation: " + options.getDeviation());
             out.println("Process #\t\tCPU Time\t\tIO Blocking\t\tCPU Completed\t\tCPU Blocked\t\tInterrupted");
             for (int i = 0; i < processes.size(); i++) {
                 Process process = processes.get(i);
@@ -35,7 +35,7 @@ public abstract class SchedulingAlgorithm {
                 out.format("%4d (ms)\t\t", process.getCpuTime());
                 out.format("%4d (ms)\t\t", process.getIoBlocking());
                 out.format("%4d (ms)\t\t\t", process.getCpuDone());
-                out.format("%4d (ms)\t\t", process.getTimesBlocked());
+                out.format("%4d\t\t\t", process.getTimesBlocked());
                 out.println(process.getTimesInterrupted());
             }
             out.close();
