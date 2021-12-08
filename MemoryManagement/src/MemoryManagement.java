@@ -18,8 +18,9 @@ public class MemoryManagement
             checkFile(args[1]);
         }
         Kernel kernel = new Kernel();
+        kernel.init(args[0], args.length == 1 ? null : args[1]);
         ControlPanel controlPanel = new ControlPanel( "Memory Management" );
-        controlPanel.init(kernel , args[0] , args.length == 1 ? null : args[1]);
+        controlPanel.init(kernel);
     }
 
     public static void checkFile(String path) {
