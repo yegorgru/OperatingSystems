@@ -14,8 +14,6 @@ public class Kernel extends Thread
     //private ControlPanel controlPanel ;
     private Vector memVector = new Vector();
     private Vector instructVector = new Vector();
-    //public int runs;
-    //public int runcycles;
 
     public Kernel() {
         options = new Options();
@@ -278,7 +276,6 @@ public class Kernel extends Thread
             File trace = new File(output);
             trace.delete();
         }
-        //runs = 0;
         int map_count = 0;
         int physical_count = 0;
         for (int i = 0; i < options.getVirtualPageNum(); i++) {
@@ -321,9 +318,9 @@ public class Kernel extends Thread
         }*/
     }
 
-    public void getPage(int pageNum)
+    public Page getPage(int pageNum)
     {
-        Page page = ( Page ) memVector.elementAt( pageNum );
+        return ( Page ) memVector.elementAt( pageNum );
         //controlPanel.paintPage( page );
     }
 

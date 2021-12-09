@@ -1,12 +1,19 @@
 public class Instruction
 {
-    public String inst;
-    public long addr;
+    private String name;
+    private long addr;
 
-    public Instruction( String inst, long addr )
+    public Instruction(String name, long addr)
     {
-        this.inst = inst;
+        this.name = name;
         this.addr = addr;
     }
 
+    String getName() {
+        return name;
+    }
+
+    long getAddr() {
+        return addr;
+    }
 }

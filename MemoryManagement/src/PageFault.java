@@ -2,7 +2,7 @@ import java.util.*;
 
 public class PageFault {
 
-    public static void replacePage ( Vector mem , int virtPageNum , int replacePageNum , ControlPanel controlPanel )
+    public static void replacePage (Vector mem , int virtPageNum , int replacePageNum , ControlPanel controlPanel )
     {
         int count = 0;
         int oldestPage = -1;
