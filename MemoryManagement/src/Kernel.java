@@ -80,10 +80,11 @@ public class Kernel extends Thread
             try
             {
                 Scanner scanner = new Scanner(configFile);
+                boolean wasPage = false;
                 while (scanner.hasNextLine()) {
                     String line = scanner.nextLine();
                     if(line.startsWith("numpages")) {
-                        if(memVector.size() != 0) {
+                        if(wasPage) {
                             log.warning("If numpages option is not default, it must be before memset options. Value ignored");
                         }
                         else {
@@ -100,12 +101,11 @@ public class Kernel extends Thread
                                     vPageNum = 63;
                                 }
                                 options.setVirtualPageNum(vPageNum);
-                                options.updateAddressLimit();
-                                initPages();
                             }
                         }
                     }
                     if (line.startsWith("memset")) {
+                        wasPage = true;
                         if(memVector.size() == 0) {
                             options.updateAddressLimit();
                             initPages();
@@ -169,7 +169,7 @@ public class Kernel extends Thread
                     }
                     if (line.startsWith("pagesize"))
                     {
-                        if(memVector.size() != 0) {
+                        if(wasPage) {
                             log.warning("If pagesize option is not default, it must be before memset options. Value ignored");
                         }
                         else {

@@ -17,8 +17,8 @@ public class MemoryManagement
         }
         Kernel kernel = new Kernel();
         kernel.init(args[0], args.length == 1 ? null : args[1]);
-        ControlPanel controlPanel = new ControlPanel( "Memory Management" );
-        controlPanel.init(kernel);
+        ControlPanel controlPanel = new ControlPanel( "Memory Management", kernel);
+        controlPanel.init();
     }
 
     public static void checkFile(String path) {
