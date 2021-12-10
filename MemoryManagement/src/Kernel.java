@@ -7,13 +7,10 @@ import java.util.logging.Logger;
 public class Kernel extends Thread
 {
     private static final Logger log = Logger.getLogger(Kernel.class.getName());
-    private Options options;
+    private final Options options;
 
-    private String output = null;
-    private static final String lineSeparator = System.getProperty("line.separator");
-    //private ControlPanel controlPanel ;
-    private Vector memVector = new Vector();
-    private Vector instructVector = new Vector();
+    private final Vector memVector = new Vector();
+    private final Vector instructVector = new Vector();
 
     public Kernel() {
         options = new Options();
@@ -31,18 +28,9 @@ public class Kernel extends Thread
         return instructVector;
     }
 
-    public int getPageIdxByAddr(long memaddr)
+    public int getPageIdxByAddr(long memoryAddr)
     {
-        /*for (int i = 0; i <= numpages; i++)
-        {
-            long low = block * i;
-            long high = block * ( i + 1 );
-            if ( low <= memaddr && memaddr < high )
-            {
-                return i;
-            }
-        }*/
-        int pageIdx = (int)(memaddr / options.getBlock());
+        int pageIdx = (int)(memoryAddr / options.getBlock());
         if(pageIdx < 0 || pageIdx > options.getVirtualPageNum()) {
             return -1;
         }
@@ -66,14 +54,6 @@ public class Kernel extends Thread
 
     public void parseConfigFile()
     {
-        //File f = new File(commandsFile);
-        //configFile = configFile;
-        //String line;
-        //String tmp = null;
-        //String command = "";
-        //int id = 0;
-        //long addressLimit = (options.getBlock() * options.getVirtualPageNum()+1)-1;
-
         if (options.getConfigPath() != null)
         {
             File configFile = new File (options.getConfigPath());
@@ -89,11 +69,11 @@ public class Kernel extends Thread
                         }
                         else {
                             StringTokenizer st = new StringTokenizer(line);
+                            st.nextToken();
                             if (!st.hasMoreTokens()) {
                                 log.warning("Undefined numpages");
                             }
                             else {
-                                st.nextToken();
                                 int vPageNum = Utils.stringToInt(st.nextToken()) - 1;
                                 if (vPageNum < 2 || vPageNum > 63) {
                                     log.warning("Number of pages is out of range. Used value 63");
@@ -116,7 +96,7 @@ public class Kernel extends Thread
                         {
                             int id = Utils.stringToInt(st.nextToken());
                             String tmp = st.nextToken();
-                            int physical = 0;
+                            int physical;
                             if(tmp.startsWith("x"))
                             {
                                 physical = -1;
@@ -156,19 +136,24 @@ public class Kernel extends Thread
                             page.setLastTouchTime(lastTouchTime);
                         }
                     }
-                    if (line.startsWith("enable_logging"))
-                    {
-                        StringTokenizer st = new StringTokenizer(line);
+                    if (line.startsWith("log_stdout")) {
                         options.setStdoutLog(true);
                     }
-                    if (line.startsWith("log_file"))
-                    {
+                    if (line.startsWith("log_file")) {
                         StringTokenizer st = new StringTokenizer(line);
                         options.setFileLog(true);
-                        output = st.nextToken();
+                        st.nextToken();
+                        if(st.hasMoreTokens()) {
+                            options.setFileLogPath(st.nextToken());
+                        }
+                        else {
+                            options.setFileLogPath("log.txt");
+                        }
+                        File file = new File(options.getFileLogPath());
+                        file.delete();
+                        file.createNewFile();
                     }
-                    if (line.startsWith("pagesize"))
-                    {
+                    if (line.startsWith("pagesize")) {
                         if(wasPage) {
                             log.warning("If pagesize option is not default, it must be before memset options. Value ignored");
                         }
@@ -219,106 +204,71 @@ public class Kernel extends Thread
     }
 
     public void parseCommandsFile() {
-        //int physical_count = 0;
-        //int map_count = 0;
-        //double power = 14;
-        //long high = 0;
-        //long low = 0;
-        //long addr = 0;
-        File f = new File (options.getCommandPath());
-        try
-        {
-            DataInputStream in = new DataInputStream(new FileInputStream(f));
-            String line;
-            while ((line = in.readLine()) != null)
-            {
-                if (line.startsWith("READ") || line.startsWith("WRITE"))
-                {
+        File commandsFile = new File (options.getCommandPath());
+        try {
+            Scanner scanner = new Scanner(commandsFile);
+            while (scanner.hasNextLine()) {
+                String line = scanner.nextLine();
+                if (line.startsWith("READ") || line.startsWith("WRITE")) {
                     String command = "";
-                    if (line.startsWith("READ"))
-                    {
+                    if (line.startsWith("READ")) {
                         command = "READ";
                     }
-                    if (line.startsWith("WRITE"))
-                    {
+                    if (line.startsWith("WRITE")) {
                         command = "WRITE";
                     }
                     StringTokenizer st = new StringTokenizer(line);
                     String tmp = st.nextToken();
                     tmp = st.nextToken();
-                    if (tmp.startsWith("random"))
-                    {
+                    if (tmp.startsWith("random")) {
                         instructVector.addElement(new Instruction(command, ThreadLocalRandom.current().nextLong(options.getAddressLimit())));
-                    }
-                    else
-                    {
+                    } else {
                         long addr;
-                        if (tmp.startsWith( "bin" ))
-                        {
-                            addr = Long.parseLong(st.nextToken(),2);
-                        }
-                        else if (tmp.startsWith( "oct" ))
-                        {
-                            addr = Long.parseLong(st.nextToken(),8);
-                        }
-                        else if (tmp.startsWith( "hex" ))
-                        {
-                            addr = Long.parseLong(st.nextToken(),16);
-                        }
-                        else
-                        {
+                        if (tmp.startsWith("bin")) {
+                            addr = Long.parseLong(st.nextToken(), 2);
+                        } else if (tmp.startsWith("oct")) {
+                            addr = Long.parseLong(st.nextToken(), 8);
+                        } else if (tmp.startsWith("hex")) {
+                            addr = Long.parseLong(st.nextToken(), 16);
+                        } else {
                             addr = Long.parseLong(tmp);
                         }
-                        if (0 > addr || addr > options.getAddressLimit())
-                        {
+                        if (0 > addr || addr > options.getAddressLimit()) {
                             log.warning(addr + " address is out of range. Used value 0");
                             //System.exit(-1);
                             addr = 0;
                         }
-                        instructVector.addElement(new Instruction(command,addr));
+                        instructVector.addElement(new Instruction(command, addr));
                     }
                 }
             }
-            in.close();
-        } catch (IOException e) {
-            log.warning("Unexpected exception: " + e.getMessage());
+        } catch (IOException ex) {
+
         }
         if(instructVector.size() == 0)
         {
             log.severe("No instructions present for execution.");
             System.exit(-1);
         }
-        if(options.isFileLog())
-        {
-            File trace = new File(output);
-            trace.delete();
-        }
-        int map_count = 0;
-        int physical_count = 0;
+        int mapCount = 0;
+        Set<Integer> physicalPages = new TreeSet<>();
         for (int i = 0; i < options.getVirtualPageNum(); i++) {
             Page page = (Page) memVector.elementAt(i);
             if (page.hasPhysical()) {
-                map_count++;
-            }
-            for (int j = 0; j < options.getVirtualPageNum(); j++) {
-                Page tmp_page = (Page) memVector.elementAt(j);
-                if (page.hasPhysical() && tmp_page.getPhysical() == page.getPhysical())
-                {
-                    physical_count++;
+                mapCount++;
+                if(physicalPages.contains(page.getPhysical())) {
+                    log.severe("Duplicate physical pages");
+                    System.exit(-1);
                 }
+                physicalPages.add(page.getPhysical());
             }
-            if (physical_count > 1) {
-                log.severe("Duplicate physical pages");
-                System.exit(-1);
-            }
-            physical_count = 0;
         }
-        if (map_count < (options.getVirtualPageNum() +1 ) / 2) {
+        if (mapCount < (options.getVirtualPageNum() +1 ) / 2) {
             for (int i = 0; i < options.getVirtualPageNum(); i++) {
                 Page page = (Page) memVector.elementAt(i);
-                if (!page.hasPhysical() && map_count < (options.getVirtualPageNum() + 1 ) / 2 ) {
+                if (!page.hasPhysical() && mapCount < (options.getVirtualPageNum() + 1 ) / 2 ) {
                     page.setPhysical(i);
-                    map_count++;
+                    mapCount++;
                 }
             }
         }
@@ -326,42 +276,7 @@ public class Kernel extends Thread
 
     public Page getPage(int pageNum)
     {
-        return ( Page ) memVector.elementAt( pageNum );
-        //controlPanel.paintPage( page );
-    }
-
-    private void printLogFile(String message)
-    {
-        String line;
-        String temp = "";
-
-        File trace = new File(output);
-        if (trace.exists())
-        {
-            try
-            {
-                DataInputStream in = new DataInputStream( new FileInputStream( output ) );
-                while ((line = in.readLine()) != null) {
-                    temp = temp + line + lineSeparator;
-                }
-                in.close();
-            }
-            catch ( IOException e )
-            {
-                /* Do nothing */
-            }
-        }
-        try
-        {
-            PrintStream out = new PrintStream( new FileOutputStream( output ) );
-            out.print( temp );
-            out.print( message );
-            out.close();
-        }
-        catch (IOException e)
-        {
-            /* Do nothing */
-        }
+        return (Page) memVector.elementAt(pageNum);
     }
 
     public void reset() {

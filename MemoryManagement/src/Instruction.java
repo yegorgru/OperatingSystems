@@ -1,7 +1,7 @@
 public class Instruction
 {
-    private String name;
-    private long addr;
+    private final String name;
+    private final long addr;
 
     public Instruction(String name, long addr)
     {

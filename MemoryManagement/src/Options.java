@@ -7,6 +7,7 @@ public class Options {
     private long addressLimit;
     private boolean fileLog;
     private boolean stdoutLog;
+    private String fileLogPath;
 
     public Options() {
         addressRadix = 10;
@@ -58,12 +59,7 @@ public class Options {
     }
 
     void updateAddressLimit() {
-        //(block * virtualPageNum+1)-1
         addressLimit = (block * (virtualPageNum+1))-1;
-    }
-
-    void setAddressLimit(long value) {
-        addressLimit = value;
     }
 
     long getAddressLimit() {
@@ -84,5 +80,13 @@ public class Options {
 
     boolean isStdoutLog() {
         return stdoutLog;
+    }
+
+    void setFileLogPath(String value) {
+        fileLogPath = value;
+    }
+
+    String getFileLogPath() {
+        return fileLogPath;
     }
 }

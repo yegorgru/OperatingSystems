@@ -1,13 +1,13 @@
 public class Page
 {
-    private int id;
+    private final int id;
     private int physical;
     private boolean read;
     private boolean write;
     private int memoryTime;
     private int lastTouchTime;
-    private long upperBound;
-    private long lowerBound;
+    private final long upperBound;
+    private final long lowerBound;
 
     public Page( int id, int physical, boolean read, boolean write, int inMemTime, int lastTouchTime, long upperBound, long lowerBound)
     {
@@ -58,7 +58,7 @@ public class Page
     }
 
     public void setLastTouchTime(int value) {
-        lastTouchTime = 0;
+        lastTouchTime = value;
     }
 
     public int getLastTouchTime() {

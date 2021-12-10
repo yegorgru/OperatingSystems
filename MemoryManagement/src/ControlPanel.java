@@ -1,10 +1,15 @@
 import java.awt.*;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.logging.Logger;
 
 public class ControlPanel extends Frame
 {
     Kernel kernel;
+    Options options;
     Button runButton = new Button("run");
     Button stepButton = new Button("step");
     Button resetButton = new Button("reset");
@@ -33,7 +38,8 @@ public class ControlPanel extends Frame
     public ControlPanel(String title, Kernel kernel) {
         super(title);
         this.kernel = kernel;
-        for(int i = 0; i <= kernel.getOptions().getVirtualPageNum(); i++) {
+        this.options = kernel.getOptions();
+        for(int i = 0; i <= options.getVirtualPageNum(); i++) {
             pageButtons.add(new Button("page " + i));
             labels.add(new Label(null, Label.CENTER));
         }
@@ -50,7 +56,7 @@ public class ControlPanel extends Frame
             }
             catch(InterruptedException e)
             {
-                /* Do nothing */
+
             }
             step();
         }
@@ -60,7 +66,7 @@ public class ControlPanel extends Frame
     {
         Instruction instruction = ( Instruction ) kernel.getInstructions().elementAt( runs );
         instructionValueLabel.setText(instruction.getName());
-        addressValueLabel.setText( Long.toString(instruction.getAddr(), kernel.getOptions().getAddressRadix()));
+        addressValueLabel.setText( Long.toString(instruction.getAddr(), options.getAddressRadix()));
         int idx = kernel.getPageIdxByAddr(instruction.getAddr());
         paintPage(idx);
         if (pageFaultValueLabel.getText().equals("YES")) {
@@ -69,12 +75,12 @@ public class ControlPanel extends Frame
         if (instruction.getName().startsWith("READ"))
         {
             Page page = kernel.getPage(kernel.getPageIdxByAddr(instruction.getAddr()));
-            String message = "READ " + Long.toString(instruction.getAddr(), kernel.getOptions().getAddressRadix());
+            String message = "READ " + Long.toString(instruction.getAddr(), options.getAddressRadix());
             if (!page.hasPhysical()) {
                 message += " ... page fault";
                 PageFault.replacePage(
                         kernel.getPages(),
-                        kernel.getOptions().getVirtualPageNum(),
+                        options.getVirtualPageNum(),
                         kernel.getPageIdxByAddr(instruction.getAddr()),
                         this
                 );
@@ -85,10 +91,10 @@ public class ControlPanel extends Frame
                 page.setLastTouchTime(0);
                 message += " ... okay";
             }
-            if (kernel.getOptions().isFileLog()) {
-                //printLogFile(message); !!!
+            if (options.isFileLog()) {
+                printLogInFile(message);
             }
-            if (kernel.getOptions().isStdoutLog()) {
+            if (options.isStdoutLog()) {
                 log.info(message);
             }
             page.setRead(true);
@@ -96,13 +102,13 @@ public class ControlPanel extends Frame
         if (instruction.getName().startsWith("WRITE"))
         {
             Page page = kernel.getPage(kernel.getPageIdxByAddr(instruction.getAddr()));
-            String message = "WRITE " + Long.toString(instruction.getAddr(), kernel.getOptions().getAddressRadix());
+            String message = "WRITE " + Long.toString(instruction.getAddr(), options.getAddressRadix());
             if (!page.hasPhysical())
             {
                 message += " ... page fault";
                 PageFault.replacePage(
                         kernel.getPages(),
-                        kernel.getOptions().getVirtualPageNum(),
+                        options.getVirtualPageNum(),
                         kernel.getPageIdxByAddr(instruction.getAddr()),
                         this
                 );
@@ -112,16 +118,16 @@ public class ControlPanel extends Frame
                 page.setLastTouchTime(0);
                 message += " ... okay";
             }
-            if (kernel.getOptions().isFileLog()) {
-                //printLogFile(message); !!!
+            if (options.isFileLog()) {
+                printLogInFile(message);
             }
-            if (kernel.getOptions().isStdoutLog()) {
+            if (options.isStdoutLog()) {
                 log.info(message);
             }
             page.setWrite(true);
         }
         paintPage(kernel.getPageIdxByAddr(instruction.getAddr()));
-        for (int i = 0; i < kernel.getOptions().getVirtualPageNum(); i++)
+        for (int i = 0; i < options.getVirtualPageNum(); i++)
         {
             Page page = kernel.getPage(i);
             if (page.isRead() && page.getLastTouchTime() == 10)
@@ -135,160 +141,160 @@ public class ControlPanel extends Frame
             }
         }
         runs++;
-        timeValueLabel.setText(runs*10 + " (ns)");
+        timeValueLabel.setText(runs*10 + " (ms)");
     }
 
     public void init()
     {
-        setLayout( null );
-        setBackground( Color.white );
-        setForeground( Color.black );
-        resize( 635 , 545 );
-        setFont( new Font( "Courier", 0, 12 ) );
+        setLayout(null);
+        setBackground(Color.white);
+        setForeground(Color.black);
+        setSize(635 , 545 );
+        setFont(new Font("Courier", Font.PLAIN, 12));
 
-        runButton.setForeground( Color.blue );
-        runButton.setBackground( Color.lightGray );
-        runButton.reshape( 0,25,70,15 );
-        add( runButton );
+        runButton.setForeground(Color.blue);
+        runButton.setBackground(Color.lightGray);
+        runButton.setBounds(0,25,70,15);
+        add(runButton);
 
         stepButton.setForeground( Color.blue );
         stepButton.setBackground( Color.lightGray );
-        stepButton.reshape( 70,25,70,15 );
-        add( stepButton );
+        stepButton.setBounds(70,25,70,15);
+        add(stepButton);
 
-        resetButton.setForeground( Color.blue );
-        resetButton.setBackground( Color.lightGray );
-        resetButton.reshape( 140,25,70,15 );
-        add( resetButton );
+        resetButton.setForeground(Color.blue);
+        resetButton.setBackground(Color.lightGray);
+        resetButton.setBounds(140,25,70,15);
+        add(resetButton);
 
-        exitButton.setForeground( Color.blue );
-        exitButton.setBackground( Color.lightGray );
-        exitButton.reshape( 210,25,70,15 );
-        add( exitButton );
+        exitButton.setForeground(Color.blue);
+        exitButton.setBackground(Color.lightGray);
+        exitButton.setBounds(210,25,70,15);
+        add(exitButton);
 
         int bound = (pageButtons.size() + 1) / 2;
         for(int i = 0; i < pageButtons.size(); i++) {
             Button button = pageButtons.get(i);
-            button.reshape(i < bound ? 0 : 140, (i%bound+2)*15+25, 70, 15);
+            button.setBounds(i < bound ? 0 : 140, (i%bound+2)*15+25, 70, 15);
             button.setForeground(Color.magenta);
             button.setBackground(Color.lightGray);
             add(button);
 
             Label label = labels.get(i);
-            label.reshape( i < bound ? 70 : 210, (2 + i%bound)*15+25, 60, 15 );
+            label.setBounds( i < bound ? 70 : 210, (2 + i%bound)*15+25, 60, 15 );
             label.setForeground( Color.red );
-            label.setFont(new Font( "Courier", 0, 10 ));
+            label.setFont(new Font( "Courier", Font.PLAIN, 10));
             add(label);
         }
 
-        statusValueLabel.reshape( 345,0+25,100,15 );
+        statusValueLabel.setBounds(45,25,100,15);
         add(statusValueLabel);
 
-        timeValueLabel.reshape( 345,15+25,100,15 );
+        timeValueLabel.setBounds(345,15+25,100,15);
         add(timeValueLabel);
 
-        instructionValueLabel.reshape( 385,45+25,100,15 );
+        instructionValueLabel.setBounds(385,45+25,100,15);
         add(instructionValueLabel);
 
-        addressValueLabel.reshape(385,60+25,230,15);
+        addressValueLabel.setBounds(385,60+25,230,15);
         add(addressValueLabel);
 
-        pageFaultValueLabel.reshape( 385,90+25,100,15 );
+        pageFaultValueLabel.setBounds(385,90+25,100,15);
         add(pageFaultValueLabel);
 
-        virtualPageValueLabel.reshape( 395,120+25,200,15 );
+        virtualPageValueLabel.setBounds(395,120+25,200,15);
         add(virtualPageValueLabel);
 
-        physicalPageValueLabel.reshape( 395,135+25,200,15 );
+        physicalPageValueLabel.setBounds(395,135+25,200,15);
         add(physicalPageValueLabel);
 
-        RValueLabel.reshape( 395,150+25,200,15 );
+        RValueLabel.setBounds(395,150+25,200,15);
         add(RValueLabel);
 
-        WValueLabel.reshape( 395,165+25,200,15 );
+        WValueLabel.setBounds( 395,165+25,200,15);
         add(WValueLabel);
 
-        inMemTimeValueLabel.reshape(395,180+25,200,15 );
-        add( inMemTimeValueLabel );
+        inMemTimeValueLabel.setBounds(395,180+25,200,15);
+        add(inMemTimeValueLabel);
 
-        lastTouchTimeValueLabel.reshape( 395,195+25,200,15 );
-        add( lastTouchTimeValueLabel );
+        lastTouchTimeValueLabel.setBounds(395,195+25,200,15);
+        add(lastTouchTimeValueLabel);
 
-        lowValueLabel.reshape( 395,210+25,230,15 );
-        add( lowValueLabel );
+        lowValueLabel.setBounds(395,210+25,230,15);
+        add(lowValueLabel);
 
-        highValueLabel.reshape( 395,225+25,230,15 );
-        add( highValueLabel );
+        highValueLabel.setBounds(395,225+25,230,15);
+        add(highValueLabel);
 
-        Label virtualOneLabel = new Label( "virtual" , Label.CENTER) ;
-        virtualOneLabel.reshape(0,15+25,70,15);
+        Label virtualOneLabel = new Label("virtual" , Label.CENTER) ;
+        virtualOneLabel.setBounds(0,15+25,70,15);
         add(virtualOneLabel);
 
         Label virtualTwoLabel = new Label( "virtual" , Label.CENTER) ;
-        virtualTwoLabel.reshape(140,15+25,70,15);
+        virtualTwoLabel.setBounds(140,15+25,70,15);
         add(virtualTwoLabel);
 
         Label physicalOneLabel = new Label( "physical" , Label.CENTER) ;
-        physicalOneLabel.reshape(70,15+25,70,15);
+        physicalOneLabel.setBounds(70,15+25,70,15);
         add(physicalOneLabel);
 
         Label physicalTwoLabel = new Label( "physical" , Label.CENTER) ;
-        physicalTwoLabel.reshape(210,15+25,70,15);
+        physicalTwoLabel.setBounds(210,15+25,70,15);
         add(physicalTwoLabel);
 
         Label statusLabel = new Label("status: " , Label.LEFT) ;
-        statusLabel.reshape(285,0+25,65,15);
+        statusLabel.setBounds(285,25,65,15);
         add(statusLabel);
 
         Label timeLabel = new Label("time: " , Label.LEFT) ;
-        timeLabel.reshape(285,15+25,50,15);
+        timeLabel.setBounds(285,15+25,50,15);
         add(timeLabel);
 
         Label instructionLabel = new Label("instruction: " , Label.LEFT) ;
-        instructionLabel.reshape(285,45+25,100,15);
+        instructionLabel.setBounds(285,45+25,100,15);
         add(instructionLabel);
 
         Label addressLabel = new Label("address: " , Label.LEFT) ;
-        addressLabel.reshape(285,60+25,85,15);
+        addressLabel.setBounds(285,60+25,85,15);
         add(addressLabel);
 
         Label pageFaultLabel = new Label("page fault: " , Label.LEFT) ;
-        pageFaultLabel.reshape(285,90+25,100,15);
+        pageFaultLabel.setBounds(285,90+25,100,15);
         add(pageFaultLabel);
 
         Label virtualPageLabel = new Label("virtual page: " , Label.LEFT) ;
-        virtualPageLabel.reshape(285,120+25,110,15);
+        virtualPageLabel.setBounds(285,120+25,110,15);
         add(virtualPageLabel);
 
         Label physicalPageLabel = new Label("physical page: " , Label.LEFT) ;
-        physicalPageLabel.reshape(285,135+25,110,15);
+        physicalPageLabel.setBounds(285,135+25,110,15);
         add(physicalPageLabel);
 
         Label RLabel = new Label("read: ", Label.LEFT) ;
-        RLabel.reshape(285,150+25,110,15);
+        RLabel.setBounds(285,150+25,110,15);
         add(RLabel);
 
         Label WLabel = new Label("write: " , Label.LEFT) ;
-        WLabel.reshape(285,165+25,110,15);
+        WLabel.setBounds(285,165+25,110,15);
         add(WLabel);
 
         Label inMemTimeLabel = new Label("in memory time: " , Label.LEFT) ;
-        inMemTimeLabel.reshape(285,180+25,110,15);
+        inMemTimeLabel.setBounds(285,180+25,110,15);
         add(inMemTimeLabel);
 
         Label lastTouchTimeLabel = new Label("last touch time: " , Label.LEFT) ;
-        lastTouchTimeLabel.reshape(285,195+25,110,15);
+        lastTouchTimeLabel.setBounds(285,195+25,110,15);
         add(lastTouchTimeLabel);
 
         Label lowLabel = new Label("low: " , Label.LEFT) ;
-        lowLabel.reshape(285,210+25,110,15);
+        lowLabel.setBounds(285,210+25,110,15);
         add(lowLabel);
 
         Label highLabel = new Label("high: " , Label.LEFT) ;
-        highLabel.reshape(285,225+25,110,15);
+        highLabel.setBounds(285,225+25,110,15);
         add(highLabel);
 
-        for (int i = 0; i <= kernel.getOptions().getVirtualPageNum(); i++)  {
+        for (int i = 0; i <= options.getVirtualPageNum(); i++)  {
             Page page = kernel.getPage(i);
             if (!page.hasPhysical()) {
                 removePhysicalPage(i);
@@ -297,8 +303,7 @@ public class ControlPanel extends Frame
                 addPhysicalPage(i, page.getPhysical());
             }
         }
-
-        show();
+        setVisible(true);
     }
 
     public void paintPage(int idx) {
@@ -309,8 +314,8 @@ public class ControlPanel extends Frame
         WValueLabel.setText(page.isWrite() ? "1" : "0");
         inMemTimeValueLabel.setText( Integer.toString(page.getMemoryTime()));
         lastTouchTimeValueLabel.setText( Integer.toString(page.getLastTouchTime()));
-        lowValueLabel.setText(Long.toString(page.getLowerBound(), kernel.getOptions().getAddressRadix()));
-        highValueLabel.setText(Long.toString(page.getUpperBound(), kernel.getOptions().getAddressRadix()));
+        lowValueLabel.setText(Long.toString(page.getLowerBound(), options.getAddressRadix()));
+        highValueLabel.setText(Long.toString(page.getUpperBound(), options.getAddressRadix()));
     }
 
     public void setStatus(String status) {
@@ -328,26 +333,26 @@ public class ControlPanel extends Frame
     }
 
 
-    public boolean action( Event e, Object arg )
+    public boolean action(Event e, Object arg)
     {
         if ( e.target == runButton )
         {
             setStatus( "RUN" );
-            runButton.disable();
-            stepButton.disable();
-            resetButton.disable();
+            runButton.setEnabled(false);
+            stepButton.setEnabled(false);
+            resetButton.setEnabled(false);
             run();
-            setStatus( "STOP" );
-            resetButton.enable();
+            setStatus("STOP");
+            resetButton.setEnabled(true);
             return true;
         }
-        else if ( e.target == stepButton )
+        else if (e.target == stepButton)
         {
             setStatus("STEP");
             step();
             if (kernel.getInstructions().size() == runs) {
-                stepButton.disable();
-                runButton.disable();
+                stepButton.setEnabled(false);
+                runButton.setEnabled(false);
             }
             setStatus("STOP");
             return true;
@@ -387,7 +392,19 @@ public class ControlPanel extends Frame
         highValueLabel.setText("0");
         runs = 0;
         kernel.reset();
-        runButton.enable();
-        stepButton.enable();
+        runButton.setEnabled(true);
+        stepButton.setEnabled(true);
+    }
+
+    private void printLogInFile(String message)
+    {
+        try {
+            Files.write(Paths.get(options.getFileLogPath()),
+                    (System.getProperty("line.separator") + message).getBytes(),
+                    StandardOpenOption.APPEND
+            );
+        }catch (IOException e) {
+
+        }
     }
 }

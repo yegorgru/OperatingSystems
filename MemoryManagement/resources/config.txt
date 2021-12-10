@@ -42,16 +42,9 @@ memset 29 29 0 0 0 0
 memset 30 30 0 0 0 0
 memset 31 31 0 0 0 0
 
-// enable_logging 'true' or 'false'
-// When true specify a log_file or leave blank for stdout
-enable_logging true
+log_stdout
 
-// log_file <FILENAME>
-// Where <FILENAME> is the name of the file you want output
-// to be print to.
-log_file tracefile
+#by default log.txt
+log_file file_log.txt
 
-// addressradix sets the radix in which numerical values are displayed
-// 2 is the default value
-// addressradix <radix>
 addressradix 16
