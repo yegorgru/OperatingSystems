@@ -9,8 +9,8 @@ public class Kernel extends Thread
     private static final Logger log = Logger.getLogger(Kernel.class.getName());
     private final Options options;
 
-    private final Vector memVector = new Vector();
-    private final Vector instructVector = new Vector();
+    private final List<Page> pages = new ArrayList<>();
+    private final List<Instruction> instructions = new ArrayList<>();
 
     public Kernel() {
         options = new Options();
@@ -20,12 +20,12 @@ public class Kernel extends Thread
         return options;
     }
 
-    public Vector getPages() {
-        return memVector;
+    public List<Page> getPages() {
+        return pages;
     }
 
-    public Vector getInstructions() {
-        return instructVector;
+    public List<Instruction> getInstructions() {
+        return instructions;
     }
 
     public int getPageIdxByAddr(long memoryAddr)
@@ -48,7 +48,7 @@ public class Kernel extends Thread
         for (int i = 0; i <= options.getVirtualPageNum(); i++) {
             long high = (options.getBlock() * (i + 1))-1;
             long low = options.getBlock() * i;
-            memVector.addElement(new Page(i, -1, false, false, 0, 0, high, low));
+            pages.add(new Page(i, -1, false, false, 0, 0, high, low));
         }
     }
 
@@ -86,7 +86,7 @@ public class Kernel extends Thread
                     }
                     if (line.startsWith("memset")) {
                         wasPage = true;
-                        if(memVector.size() == 0) {
+                        if(pages.size() == 0) {
                             options.updateAddressLimit();
                             initPages();
                         }
@@ -128,7 +128,7 @@ public class Kernel extends Thread
                                 //System.exit(-1);
                                 lastTouchTime = 0;
                             }
-                            Page page = (Page) memVector.elementAt(id);
+                            Page page = pages.get(id);
                             page.setPhysical(physical);
                             page.setRead(R);
                             page.setWrite(M);
@@ -180,8 +180,7 @@ public class Kernel extends Thread
                             options.updateAddressLimit();
                         }
                     }
-                    if (line.startsWith("addressradix"))
-                    {
+                    if (line.startsWith("addressradix")) {
                         StringTokenizer st = new StringTokenizer(line);
                         String tmp = st.nextToken();
                         tmp = st.nextToken();
@@ -193,6 +192,18 @@ public class Kernel extends Thread
                             radix = 10;
                         }
                         options.setAddressRadix(radix);
+                    }
+                    if (line.startsWith("delay")) {
+                        StringTokenizer st = new StringTokenizer(line);
+                        String tmp = st.nextToken();
+                        tmp = st.nextToken();
+                        int delay = Utils.stringToInt(tmp);
+                        if(delay <= 50) {
+                            log.warning("delay is too small. Used value 2000");
+                            //System.exit(-1);
+                            delay = 2000;
+                        }
+                        options.setDelay(delay);
                     }
                 }
                 scanner.close();
@@ -221,7 +232,7 @@ public class Kernel extends Thread
                     String tmp = st.nextToken();
                     tmp = st.nextToken();
                     if (tmp.startsWith("random")) {
-                        instructVector.addElement(new Instruction(command, ThreadLocalRandom.current().nextLong(options.getAddressLimit())));
+                        instructions.add(new Instruction(command, ThreadLocalRandom.current().nextLong(options.getAddressLimit())));
                     } else {
                         long addr;
                         if (tmp.startsWith("bin")) {
@@ -238,14 +249,14 @@ public class Kernel extends Thread
                             //System.exit(-1);
                             addr = 0;
                         }
-                        instructVector.addElement(new Instruction(command, addr));
+                        instructions.add(new Instruction(command, addr));
                     }
                 }
             }
         } catch (IOException ex) {
 
         }
-        if(instructVector.size() == 0)
+        if(instructions.size() == 0)
         {
             log.severe("No instructions present for execution.");
             System.exit(-1);
@@ -253,7 +264,7 @@ public class Kernel extends Thread
         int mapCount = 0;
         Set<Integer> physicalPages = new TreeSet<>();
         for (int i = 0; i < options.getVirtualPageNum(); i++) {
-            Page page = (Page) memVector.elementAt(i);
+            Page page = pages.get(i);
             if (page.hasPhysical()) {
                 mapCount++;
                 if(physicalPages.contains(page.getPhysical())) {
@@ -265,10 +276,13 @@ public class Kernel extends Thread
         }
         if (mapCount < (options.getVirtualPageNum() +1 ) / 2) {
             for (int i = 0; i < options.getVirtualPageNum(); i++) {
-                Page page = (Page) memVector.elementAt(i);
-                if (!page.hasPhysical() && mapCount < (options.getVirtualPageNum() + 1 ) / 2 ) {
+                Page page = pages.get(i);
+                if (!page.hasPhysical()) {
                     page.setPhysical(i);
                     mapCount++;
+                    if(mapCount == (options.getVirtualPageNum() + 1 ) / 2) {
+                        break;
+                    }
                 }
             }
         }
@@ -276,12 +290,12 @@ public class Kernel extends Thread
 
     public Page getPage(int pageNum)
     {
-        return (Page) memVector.elementAt(pageNum);
+        return pages.get(pageNum);
     }
 
     public void reset() {
-        memVector.removeAllElements();
-        instructVector.removeAllElements();
+        pages.clear();
+        instructions.clear();
         parseConfigFile();
         parseCommandsFile();
     }

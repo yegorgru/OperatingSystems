@@ -44,7 +44,10 @@ memset 31 31 0 0 0 0
 
 log_stdout
 
-#by default log.txt
+//by default log.txt
 log_file file_log.txt
 
 addressradix 16
+
+//new option
+delay 1000

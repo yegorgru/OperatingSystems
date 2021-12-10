@@ -45,107 +45,7 @@ public class ControlPanel extends Frame
         }
     }
 
-    public void run()
-    {
-        step();
-        while (runs != kernel.getInstructions().size())
-        {
-            try
-            {
-                Thread.sleep(2000);
-            }
-            catch(InterruptedException e)
-            {
-
-            }
-            step();
-        }
-    }
-
-    public void step()
-    {
-        Instruction instruction = ( Instruction ) kernel.getInstructions().elementAt( runs );
-        instructionValueLabel.setText(instruction.getName());
-        addressValueLabel.setText( Long.toString(instruction.getAddr(), options.getAddressRadix()));
-        int idx = kernel.getPageIdxByAddr(instruction.getAddr());
-        paintPage(idx);
-        if (pageFaultValueLabel.getText().equals("YES")) {
-            pageFaultValueLabel.setText("NO");
-        }
-        if (instruction.getName().startsWith("READ"))
-        {
-            Page page = kernel.getPage(kernel.getPageIdxByAddr(instruction.getAddr()));
-            String message = "READ " + Long.toString(instruction.getAddr(), options.getAddressRadix());
-            if (!page.hasPhysical()) {
-                message += " ... page fault";
-                PageFault.replacePage(
-                        kernel.getPages(),
-                        options.getVirtualPageNum(),
-                        kernel.getPageIdxByAddr(instruction.getAddr()),
-                        this
-                );
-                pageFaultValueLabel.setText("YES");
-            }
-            else
-            {
-                page.setLastTouchTime(0);
-                message += " ... okay";
-            }
-            if (options.isFileLog()) {
-                printLogInFile(message);
-            }
-            if (options.isStdoutLog()) {
-                log.info(message);
-            }
-            page.setRead(true);
-        }
-        if (instruction.getName().startsWith("WRITE"))
-        {
-            Page page = kernel.getPage(kernel.getPageIdxByAddr(instruction.getAddr()));
-            String message = "WRITE " + Long.toString(instruction.getAddr(), options.getAddressRadix());
-            if (!page.hasPhysical())
-            {
-                message += " ... page fault";
-                PageFault.replacePage(
-                        kernel.getPages(),
-                        options.getVirtualPageNum(),
-                        kernel.getPageIdxByAddr(instruction.getAddr()),
-                        this
-                );
-            }
-            else
-            {
-                page.setLastTouchTime(0);
-                message += " ... okay";
-            }
-            if (options.isFileLog()) {
-                printLogInFile(message);
-            }
-            if (options.isStdoutLog()) {
-                log.info(message);
-            }
-            page.setWrite(true);
-        }
-        paintPage(kernel.getPageIdxByAddr(instruction.getAddr()));
-        for (int i = 0; i < options.getVirtualPageNum(); i++)
-        {
-            Page page = kernel.getPage(i);
-            if (page.isRead() && page.getLastTouchTime() == 10)
-            {
-                page.setRead(false);
-            }
-            if (page.hasPhysical())
-            {
-                page.setMemoryTime(page.getMemoryTime() + 10);
-                page.setLastTouchTime(page.getLastTouchTime() + 10);
-            }
-        }
-        runs++;
-        timeValueLabel.setText(runs*10 + " (ms)");
-    }
-
-    public void init()
-    {
+    public void init() {
         setLayout(null);
         setBackground(Color.white);
         setForeground(Color.black);
@@ -306,6 +206,93 @@ public class ControlPanel extends Frame
         setVisible(true);
     }
 
+    public void run() {
+        step();
+        while (runs != kernel.getInstructions().size()) {
+            try {
+                Thread.sleep(options.getDelay());
+            }
+            catch(InterruptedException e) {
+
+            }
+            step();
+        }
+    }
+
+    public void step() {
+        Instruction instruction = kernel.getInstructions().get(runs);
+        instructionValueLabel.setText(instruction.getName());
+        addressValueLabel.setText( Long.toString(instruction.getAddr(), options.getAddressRadix()));
+        int idx = kernel.getPageIdxByAddr(instruction.getAddr());
+        paintPage(idx);
+        if (pageFaultValueLabel.getText().equals("YES")) {
+            pageFaultValueLabel.setText("NO");
+        }
+        if (instruction.getName().startsWith("READ")) {
+            Page page = kernel.getPage(kernel.getPageIdxByAddr(instruction.getAddr()));
+            String message = "READ " + Long.toString(instruction.getAddr(), options.getAddressRadix());
+            if (!page.hasPhysical()) {
+                message += " ... page fault";
+                PageFault.replacePage(
+                        kernel.getPages(),
+                        options.getVirtualPageNum(),
+                        kernel.getPageIdxByAddr(instruction.getAddr()),
+                        this
+                );
+                pageFaultValueLabel.setText("YES");
+            }
+            else {
+                page.setLastTouchTime(0);
+                message += " ... okay";
+            }
+            if (options.isFileLog()) {
+                printLogInFile(message);
+            }
+            if (options.isStdoutLog()) {
+                log.info(message);
+            }
+            page.setRead(true);
+        }
+        if (instruction.getName().startsWith("WRITE")) {
+            Page page = kernel.getPage(kernel.getPageIdxByAddr(instruction.getAddr()));
+            String message = "WRITE " + Long.toString(instruction.getAddr(), options.getAddressRadix());
+            if (!page.hasPhysical())
+            {
+                message += " ... page fault";
+                PageFault.replacePage(
+                        kernel.getPages(),
+                        options.getVirtualPageNum(),
+                        kernel.getPageIdxByAddr(instruction.getAddr()),
+                        this
+                );
+            }
+            else {
+                page.setLastTouchTime(0);
+                message += " ... okay";
+            }
+            if (options.isFileLog()) {
+                printLogInFile(message);
+            }
+            if (options.isStdoutLog()) {
+                log.info(message);
+            }
+            page.setWrite(true);
+        }
+        paintPage(kernel.getPageIdxByAddr(instruction.getAddr()));
+        for (int i = 0; i < options.getVirtualPageNum(); i++) {
+            Page page = kernel.getPage(i);
+            if (page.isRead() && page.getLastTouchTime() == 10) {
+                page.setRead(false);
+            }
+            if (page.hasPhysical()) {
+                page.setMemoryTime(page.getMemoryTime() + 10);
+                page.setLastTouchTime(page.getLastTouchTime() + 10);
+            }
+        }
+        runs++;
+        timeValueLabel.setText(runs*10 + " (ms)");
+    }
+
     public void paintPage(int idx) {
         Page page = kernel.getPage(idx);
         virtualPageValueLabel.setText(Integer.toString(page.getId()));
@@ -335,8 +322,7 @@ public class ControlPanel extends Frame
 
     public boolean action(Event e, Object arg)
     {
-        if ( e.target == runButton )
-        {
+        if ( e.target == runButton ) {
             setStatus( "RUN" );
             runButton.setEnabled(false);
             stepButton.setEnabled(false);
@@ -346,8 +332,7 @@ public class ControlPanel extends Frame
             resetButton.setEnabled(true);
             return true;
         }
-        else if (e.target == stepButton)
-        {
+        else if (e.target == stepButton) {
             setStatus("STEP");
             step();
             if (kernel.getInstructions().size() == runs) {
@@ -357,13 +342,11 @@ public class ControlPanel extends Frame
             setStatus("STOP");
             return true;
         }
-        else if (e.target == resetButton)
-        {
+        else if (e.target == resetButton) {
             reset();
             return true;
         }
-        else if ( e.target == exitButton )
-        {
+        else if ( e.target == exitButton ) {
             System.exit(0);
             return true;
         }
@@ -403,7 +386,7 @@ public class ControlPanel extends Frame
                     (System.getProperty("line.separator") + message).getBytes(),
                     StandardOpenOption.APPEND
             );
-        }catch (IOException e) {
+        } catch (IOException e) {
 
         }
     }

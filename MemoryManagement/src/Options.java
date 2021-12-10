@@ -8,6 +8,7 @@ public class Options {
     private boolean fileLog;
     private boolean stdoutLog;
     private String fileLogPath;
+    private int delay;
 
     public Options() {
         addressRadix = 10;
@@ -88,5 +89,13 @@ public class Options {
 
     String getFileLogPath() {
         return fileLogPath;
+    }
+
+    void setDelay(int value) {
+        delay = value;
+    }
+
+    int getDelay() {
+        return delay;
     }
 }

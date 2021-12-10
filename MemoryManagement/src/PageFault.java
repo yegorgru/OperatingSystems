@@ -2,7 +2,7 @@ import java.util.*;
 
 public class PageFault {
 
-    public static void replacePage (Vector mem , int virtPageNum , int replacePageNum , ControlPanel controlPanel ) {
+    public static void replacePage (List<Page> pages, int virtPageNum , int replacePageNum , ControlPanel controlPanel ) {
         int count = 0;
         int oldestPage = -1;
         int oldestTime = 0;
@@ -10,7 +10,7 @@ public class PageFault {
         boolean mapped = false;
 
         while (!mapped || count != virtPageNum ) {
-            Page page = (Page) mem.elementAt( count );
+            Page page = pages.get(count);
             if (page.hasPhysical()) {
                 if (firstPage == -1) {
                     firstPage = count;
@@ -29,8 +29,8 @@ public class PageFault {
         if (oldestPage == -1) {
             oldestPage = firstPage;
         }
-        Page page = (Page) mem.elementAt(oldestPage);
-        Page nextpage = (Page) mem.elementAt(replacePageNum);
+        Page page = pages.get(oldestPage);
+        Page nextpage = pages.get(replacePageNum);
         controlPanel.removePhysicalPage(oldestPage);
         nextpage.setPhysical(page.getPhysical());
         controlPanel.addPhysicalPage(nextpage.getPhysical(), replacePageNum);
