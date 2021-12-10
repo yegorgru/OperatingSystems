@@ -31,6 +31,24 @@ public class Kernel extends Thread
         return instructVector;
     }
 
+    public int getPageIdxByAddr(long memaddr)
+    {
+        /*for (int i = 0; i <= numpages; i++)
+        {
+            long low = block * i;
+            long high = block * ( i + 1 );
+            if ( low <= memaddr && memaddr < high )
+            {
+                return i;
+            }
+        }*/
+        int pageIdx = (int)(memaddr / options.getBlock());
+        if(pageIdx < 0 || pageIdx > options.getVirtualPageNum()) {
+            return -1;
+        }
+        return pageIdx;
+    }
+
     public void init(String commandsPath, String configPath) {
         options.setCommandPath(commandsPath);
         options.setConfigPath(configPath);
@@ -39,8 +57,7 @@ public class Kernel extends Thread
     }
 
     public void initPages() {
-        for (int i = 0; i <= options.getVirtualPageNum(); i++)
-        {
+        for (int i = 0; i <= options.getVirtualPageNum(); i++) {
             long high = (options.getBlock() * (i + 1))-1;
             long low = options.getBlock() * i;
             memVector.addElement(new Page(i, -1, false, false, 0, 0, high, low));
@@ -132,11 +149,11 @@ public class Kernel extends Thread
                                 lastTouchTime = 0;
                             }
                             Page page = (Page) memVector.elementAt(id);
-                            page.physical = physical;
-                            page.R = R;
-                            page.M = M;
-                            page.inMemTime = inMemTime;
-                            page.lastTouchTime = lastTouchTime;
+                            page.setPhysical(physical);
+                            page.setRead(R);
+                            page.setWrite(M);
+                            page.setMemoryTime(inMemTime);
+                            page.setLastTouchTime(lastTouchTime);
                         }
                     }
                     if (line.startsWith("enable_logging"))
@@ -280,12 +297,12 @@ public class Kernel extends Thread
         int physical_count = 0;
         for (int i = 0; i < options.getVirtualPageNum(); i++) {
             Page page = (Page) memVector.elementAt(i);
-            if (page.physical != -1) {
+            if (page.hasPhysical()) {
                 map_count++;
             }
             for (int j = 0; j < options.getVirtualPageNum(); j++) {
                 Page tmp_page = (Page) memVector.elementAt(j);
-                if (tmp_page.physical == page.physical && page.physical >= 0)
+                if (page.hasPhysical() && tmp_page.getPhysical() == page.getPhysical())
                 {
                     physical_count++;
                 }
@@ -299,23 +316,12 @@ public class Kernel extends Thread
         if (map_count < (options.getVirtualPageNum() +1 ) / 2) {
             for (int i = 0; i < options.getVirtualPageNum(); i++) {
                 Page page = (Page) memVector.elementAt(i);
-                if (page.physical == -1 && map_count < (options.getVirtualPageNum() + 1 ) / 2 ) {
-                    page.physical = i;
+                if (!page.hasPhysical() && map_count < (options.getVirtualPageNum() + 1 ) / 2 ) {
+                    page.setPhysical(i);
                     map_count++;
                 }
             }
         }
-
-        /*for (int i = 0; i < instructVector.size(); i++)
-        {
-            //high = options.getBlock() * options.getVirtualPageNum();
-            Instruction instruct = (Instruction)  instructVector.elementAt(i);
-            if (instruct.addr < 0 || instruct.addr > options.getAddressLimit())
-            {
-                log.severe("Instruction (" + instruct.inst + " " + instruct.addr + ") out of bounds.");
-                System.exit(-1);
-            }
-        }*/
     }
 
     public Page getPage(int pageNum)

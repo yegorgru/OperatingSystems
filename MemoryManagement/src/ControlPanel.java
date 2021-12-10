@@ -182,15 +182,16 @@ public class ControlPanel extends Frame
         Instruction instruction = ( Instruction ) kernel.getInstructions().elementAt( runs );
         instructionValueLabel.setText(instruction.getName());
         addressValueLabel.setText( Long.toString(instruction.getAddr(), kernel.getOptions().getAddressRadix()));
-        int idx = Virtual2Physical.pageNum(instruction.getAddr(), kernel.getOptions().getVirtualPageNum(), kernel.getOptions().getBlock());
+        paintPage(kernel.getPageIdxByAddr(instruction.getAddr()));
+        int idx = kernel.getPageIdxByAddr(instruction.getAddr());
         paintPage(idx);
         if (pageFaultValueLabel.getText().equals("YES")) {
             pageFaultValueLabel.setText("NO");
         }
         if (instruction.getName().startsWith("READ"))
         {
-            Page page = kernel.getPage(Virtual2Physical.pageNum(instruction.getAddr(), kernel.getOptions().getVirtualPageNum(), kernel.getOptions().getBlock()));
-            if ( page.physical == -1 ) {
+            Page page = kernel.getPage(kernel.getPageIdxByAddr(instruction.getAddr()));
+            if (!page.hasPhysical()) {
                 String message = "READ " + Long.toString(instruction.getAddr(), kernel.getOptions().getAddressRadix()) + " ... page fault";
                 if (kernel.getOptions().isFileLog()) {
                     //printLogFile(message); !!!
@@ -201,15 +202,15 @@ public class ControlPanel extends Frame
                 PageFault.replacePage(
                         kernel.getPages(),
                         kernel.getOptions().getVirtualPageNum(),
-                        Virtual2Physical.pageNum(instruction.getAddr(), kernel.getOptions().getVirtualPageNum(), kernel.getOptions().getBlock()),
+                        kernel.getPageIdxByAddr(instruction.getAddr()),
                         this
                 );
                 pageFaultValueLabel.setText("YES");
             }
             else
             {
-                page.R = true;
-                page.lastTouchTime = 0;
+                page.setRead(true);;
+                page.setLastTouchTime(0);
                 String message = "READ " + Long.toString(instruction.getAddr(), kernel.getOptions().getAddressRadix()) + " ... okay";
                 if (kernel.getOptions().isFileLog())
                 {
@@ -223,8 +224,8 @@ public class ControlPanel extends Frame
         }
         if (instruction.getName().startsWith("WRITE"))
         {
-            Page page = kernel.getPage(Virtual2Physical.pageNum(instruction.getAddr(), kernel.getOptions().getVirtualPageNum(), kernel.getOptions().getBlock()));
-            if (page.physical == -1)
+            Page page = kernel.getPage(kernel.getPageIdxByAddr(instruction.getAddr()));
+            if (!page.hasPhysical())
             {
                 String message = "WRITE " + Long.toString(instruction.getAddr(), kernel.getOptions().getAddressRadix()) + " ... page fault";
                 if (kernel.getOptions().isFileLog())
@@ -238,14 +239,14 @@ public class ControlPanel extends Frame
                 PageFault.replacePage(
                         kernel.getPages(),
                         kernel.getOptions().getVirtualPageNum(),
-                        Virtual2Physical.pageNum(instruction.getAddr(), kernel.getOptions().getVirtualPageNum(), kernel.getOptions().getBlock()),
+                        kernel.getPageIdxByAddr(instruction.getAddr()),
                         this
                 );
             }
             else
             {
-                page.M = true;
-                page.lastTouchTime = 0;
+                page.setWrite(true);
+                page.setLastTouchTime(0);
                 String message = "WRITE " + Long.toString(instruction.getAddr(), kernel.getOptions().getAddressRadix()) + " ... okay";
                 if (kernel.getOptions().isFileLog())
                 {
@@ -260,14 +261,14 @@ public class ControlPanel extends Frame
         for (int i = 0; i < kernel.getOptions().getVirtualPageNum(); i++)
         {
             Page page = kernel.getPage(i);
-            if (page.R && page.lastTouchTime == 10 )
+            if (page.isRead() && page.getLastTouchTime() == 10)
             {
-                page.R = false;
+                page.setRead(false);
             }
-            if ( page.physical != -1 )
+            if (page.hasPhysical())
             {
-                page.inMemTime = page.inMemTime + 10;
-                page.lastTouchTime = page.lastTouchTime + 10;
+                page.setMemoryTime(page.getMemoryTime() + 10);
+                page.setLastTouchTime(page.getLastTouchTime() + 10);
             }
         }
         runs++;
@@ -1053,27 +1054,30 @@ public class ControlPanel extends Frame
 
         for (int i = 0; i < kernel.getOptions().getVirtualPageNum(); i++)  {
             Page page = kernel.getPage(i);
-            if (page.physical == -1) {
+            paintPage(i);
+            if (!page.hasPhysical()) {
                 removePhysicalPage(i);
             }
             else {
-                addPhysicalPage(i, page.physical);
+                addPhysicalPage(i, page.getPhysical());
             }
         }
+
+        paintPage(0);
 
         show();
     }
 
     public void paintPage(int idx) {
         Page page = kernel.getPage(idx);
-        virtualPageValueLabel.setText( Integer.toString( page.id ) );
-        physicalPageValueLabel.setText( Integer.toString( page.physical ) );
-        RValueLabel.setText(page.R ? "1" : "0");
-        MValueLabel.setText(page.M ? "1" : "0");
-        inMemTimeValueLabel.setText( Integer.toString( page.inMemTime ) );
-        lastTouchTimeValueLabel.setText( Integer.toString( page.lastTouchTime ) );
-        lowValueLabel.setText(Long.toString( page.low , kernel.getOptions().getAddressRadix()));
-        highValueLabel.setText(Long.toString( page.high , kernel.getOptions().getAddressRadix()));
+        virtualPageValueLabel.setText(Integer.toString(page.getId()));
+        physicalPageValueLabel.setText( Integer.toString(page.getPhysical()));
+        RValueLabel.setText(page.isRead() ? "1" : "0");
+        MValueLabel.setText(page.isWrite() ? "1" : "0");
+        inMemTimeValueLabel.setText( Integer.toString(page.getMemoryTime()));
+        lastTouchTimeValueLabel.setText( Integer.toString(page.getLastTouchTime()));
+        lowValueLabel.setText(Long.toString(page.getLowerBound(), kernel.getOptions().getAddressRadix()));
+        highValueLabel.setText(Long.toString(page.getUpperBound(), kernel.getOptions().getAddressRadix()));
     }
 
     public void setStatus(String status) {
@@ -1344,7 +1348,7 @@ public class ControlPanel extends Frame
         }
     }
 
-    public void removePhysicalPage( int physicalPage )
+    public void removePhysicalPage(int physicalPage)
     {
         if ( physicalPage == 0 )
         {
@@ -1648,6 +1652,7 @@ public class ControlPanel extends Frame
             lastTouchTimeValueLabel.setText("0");
             lowValueLabel.setText("0");
             highValueLabel.setText("0");
+            runs = 0;
             kernel.reset();
             runButton.enable();
             stepButton.enable();
