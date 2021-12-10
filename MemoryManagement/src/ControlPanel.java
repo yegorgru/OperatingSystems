@@ -231,51 +231,13 @@ public class ControlPanel extends Frame
         if (instruction.getName().startsWith("READ")) {
             Page page = kernel.getPage(kernel.getPageIdxByAddr(instruction.getAddr()));
             String message = "READ " + Long.toString(instruction.getAddr(), options.getAddressRadix());
-            if (!page.hasPhysical()) {
-                message += " ... page fault";
-                PageFault.replacePage(
-                        kernel.getPages(),
-                        options.getVirtualPageNum(),
-                        kernel.getPageIdxByAddr(instruction.getAddr()),
-                        this
-                );
-                pageFaultValueLabel.setText("YES");
-            }
-            else {
-                page.setLastTouchTime(0);
-                message += " ... okay";
-            }
-            if (options.isFileLog()) {
-                printLogInFile(message);
-            }
-            if (options.isStdoutLog()) {
-                log.info(message);
-            }
+            processPageOperation(instruction, page, message);
             page.setRead(true);
         }
         if (instruction.getName().startsWith("WRITE")) {
             Page page = kernel.getPage(kernel.getPageIdxByAddr(instruction.getAddr()));
             String message = "WRITE " + Long.toString(instruction.getAddr(), options.getAddressRadix());
-            if (!page.hasPhysical())
-            {
-                message += " ... page fault";
-                PageFault.replacePage(
-                        kernel.getPages(),
-                        options.getVirtualPageNum(),
-                        kernel.getPageIdxByAddr(instruction.getAddr()),
-                        this
-                );
-            }
-            else {
-                page.setLastTouchTime(0);
-                message += " ... okay";
-            }
-            if (options.isFileLog()) {
-                printLogInFile(message);
-            }
-            if (options.isStdoutLog()) {
-                log.info(message);
-            }
+            processPageOperation(instruction, page, message);
             page.setWrite(true);
         }
         paintPage(kernel.getPageIdxByAddr(instruction.getAddr()));
@@ -291,6 +253,25 @@ public class ControlPanel extends Frame
         }
         runs++;
         timeValueLabel.setText(runs*10 + " (ms)");
+    }
+
+    private void processPageOperation(Instruction instruction, Page page, String message) {
+        if (!page.hasPhysical())
+        {
+            message += " ... page fault";
+            replacePage(kernel.getPageIdxByAddr(instruction.getAddr()));
+            pageFaultValueLabel.setText("YES");
+        }
+        else {
+            page.setLastTouchTime(0);
+            message += " ... okay";
+        }
+        if (options.isFileLog()) {
+            printLogInFile(message);
+        }
+        if (options.isStdoutLog()) {
+            log.info(message);
+        }
     }
 
     public void paintPage(int idx) {
@@ -389,5 +370,19 @@ public class ControlPanel extends Frame
         } catch (IOException e) {
 
         }
+    }
+
+    private void replacePage(int newPageIdx) {
+        int oldPageIdx = new PrimitiveReplacement().replacePage(kernel.getPages());
+        Page page = kernel.getPages().get(oldPageIdx);
+        Page nextpage = kernel.getPages().get(newPageIdx);
+        removePhysicalPage(oldPageIdx);
+        nextpage.setPhysical(page.getPhysical());
+        addPhysicalPage(nextpage.getPhysical(), newPageIdx);
+        page.setMemoryTime(0);
+        page.setLastTouchTime(0);
+        page.setRead(false);
+        page.setWrite(false);
+        page.resetPhysical();
     }
 }
