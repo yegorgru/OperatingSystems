@@ -8,7 +8,7 @@ public class Parser extends Thread
 {
     private static final Logger log = Logger.getLogger(Parser.class.getName());
 
-    public Options parseConfigFile(String configPath)
+    public static Options parseConfigFile(String configPath)
     {
         Options options = new Options();
         options.setConfigPath(configPath);
@@ -127,7 +127,7 @@ public class Parser extends Thread
         return options;
     }
 
-    public List<Instruction> parseCommandsFile(Options options, String commandsPath) {
+    public static List<Instruction> parseCommandsFile(Options options, String commandsPath) {
         options.setCommandPath(commandsPath);
         List<Instruction> instructions = new ArrayList<>();
         File commandsFile = new File (options.getCommandPath());

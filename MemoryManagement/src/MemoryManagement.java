@@ -13,8 +13,8 @@ public class MemoryManagement
         }
         checkFile(args[0]);
         checkFile(args[1]);
-        ControlPanel controlPanel = new ControlPanel( "Memory Management");
-        controlPanel.init(args[0], args[1]);
+        Application application = new Application( "Memory Management");
+        application.init(args[0], args[1]);
     }
 
     public static void checkFile(String path) {
