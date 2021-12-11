@@ -31,7 +31,7 @@ public class Kernel extends Thread
     public int getPageIdxByAddr(long memoryAddr)
     {
         int pageIdx = (int)(memoryAddr / options.getBlock());
-        if(pageIdx < 0 || pageIdx > options.getVirtualPageNum()) {
+        if(pageIdx < 0 || pageIdx > options.getVirtualPageMaxIdx()) {
             return -1;
         }
         return pageIdx;
@@ -45,10 +45,10 @@ public class Kernel extends Thread
     }
 
     public void initPages() {
-        for (int i = 0; i <= options.getVirtualPageNum(); i++) {
+        for (int i = 0; i <= options.getVirtualPageMaxIdx(); i++) {
             long high = (options.getBlock() * (i + 1))-1;
             long low = options.getBlock() * i;
-            pages.add(new Page(i, -1, false, false, 0, 0, high, low));
+            pages.add(new Page(i, false, false, 0, 0, high, low));
         }
     }
 
@@ -60,81 +60,31 @@ public class Kernel extends Thread
             try
             {
                 Scanner scanner = new Scanner(configFile);
-                boolean wasPage = false;
+                boolean wasNumpages = false;
                 while (scanner.hasNextLine()) {
                     String line = scanner.nextLine();
                     if(line.startsWith("numpages")) {
-                        if(wasPage) {
-                            log.warning("If numpages option is not default, it must be before memset options. Value ignored");
-                        }
-                        else {
-                            StringTokenizer st = new StringTokenizer(line);
-                            st.nextToken();
-                            if (!st.hasMoreTokens()) {
-                                log.warning("Undefined numpages");
-                            }
-                            else {
-                                int vPageNum = Utils.stringToInt(st.nextToken()) - 1;
-                                if (vPageNum < 2 || vPageNum > 63) {
-                                    log.warning("Number of pages is out of range. Used value 63");
-                                    //System.exit(-1);
-                                    vPageNum = 63;
-                                }
-                                options.setVirtualPageNum(vPageNum);
-                            }
-                        }
-                    }
-                    if (line.startsWith("memset")) {
-                        wasPage = true;
-                        if(pages.size() == 0) {
-                            options.updateAddressLimit();
-                            initPages();
-                        }
+                        wasNumpages = true;
                         StringTokenizer st = new StringTokenizer(line);
                         st.nextToken();
-                        while (st.hasMoreTokens())
-                        {
-                            int id = Utils.stringToInt(st.nextToken());
-                            String tmp = st.nextToken();
-                            int physical;
-                            if(tmp.startsWith("x"))
-                            {
-                                physical = -1;
-                            }
-                            else
-                            {
-                                physical = Utils.stringToInt(tmp);
-                            }
-                            if (0 > id || id > options.getVirtualPageNum() ||
-                                    -1 > physical || physical > ((options.getVirtualPageNum() - 1) / 2))
-                            {
-                                log.warning(id + " page id is invalid. Used default value 0.");
-                                //System.exit(-1);
-                                id = 0;
-                            }
-                            boolean R = Utils.stringToBoolean(st.nextToken());
-                            boolean M = Utils.stringToBoolean(st.nextToken());
-                            int inMemTime = Utils.stringToInt(st.nextToken());
-                            if (inMemTime < 0)
-                            {
-                                log.warning(inMemTime + " inMemTime value is invalid. Used default value 0.");
-                                //System.exit(-1);
-                                inMemTime = 0;
-                            }
-                            int lastTouchTime = Utils.stringToInt(st.nextToken());
-                            if (lastTouchTime < 0)
-                            {
-                                log.warning(lastTouchTime + " lastTouchTime value is invalid. Used default value 0.");
-                                //System.exit(-1);
-                                lastTouchTime = 0;
-                            }
-                            Page page = pages.get(id);
-                            page.setPhysical(physical);
-                            page.setRead(R);
-                            page.setWrite(M);
-                            page.setMemoryTime(inMemTime);
-                            page.setLastTouchTime(lastTouchTime);
+                        if (!st.hasMoreTokens()) {
+                            log.warning("Undefined numpages");
                         }
+                        else {
+                            int vPageNum = Utils.stringToInt(st.nextToken()) - 1;
+                            if (vPageNum < 2 || vPageNum > 63) {
+                                log.warning("Number of pages is out of range. Used value 63");
+                                //System.exit(-1);
+                                vPageNum = 63;
+                            }
+                            options.setVirtualPageMaxIdx(vPageNum);
+                        }
+                        initPages();
+                    }
+                    if (line.startsWith("physical_pages")) {
+                        StringTokenizer st = new StringTokenizer(line);
+                        st.nextToken();
+                        options.setPhysicalPages(Utils.stringToInt(st.nextToken()));
                     }
                     if (line.startsWith("log_stdout")) {
                         options.setStdoutLog(true);
@@ -154,8 +104,8 @@ public class Kernel extends Thread
                         file.createNewFile();
                     }
                     if (line.startsWith("pagesize")) {
-                        if(wasPage) {
-                            log.warning("If pagesize option is not default, it must be before memset options. Value ignored");
+                        if(wasNumpages) {
+                            log.warning("If pagesize option is not default, it must be before numpages option. Value ignored");
                         }
                         else {
                             StringTokenizer st = new StringTokenizer(line);
@@ -185,7 +135,7 @@ public class Kernel extends Thread
                         String tmp = st.nextToken();
                         tmp = st.nextToken();
                         int radix = Utils.stringToInt(tmp);
-                        if (radix < 0 || radix > 20 )
+                        if (radix < 0 || radix > 20)
                         {
                             log.warning("addressradix is out of range. Used value 10");
                             //System.exit(-1);
@@ -220,19 +170,18 @@ public class Kernel extends Thread
             Scanner scanner = new Scanner(commandsFile);
             while (scanner.hasNextLine()) {
                 String line = scanner.nextLine();
-                if (line.startsWith("READ") || line.startsWith("WRITE")) {
-                    String command = "";
-                    if (line.startsWith("READ")) {
-                        command = "READ";
-                    }
-                    if (line.startsWith("WRITE")) {
-                        command = "WRITE";
-                    }
+                if (line.startsWith("PROCESS")) {
                     StringTokenizer st = new StringTokenizer(line);
                     String tmp = st.nextToken();
+                    int processId = Utils.stringToInt(st.nextToken());
+                    String command = st.nextToken();
+                    if (!command.equals("READ") && !command.equals("WRITE")) {
+                        log.severe("Unknown command: " + command);
+                        System.exit(-1);
+                    }
                     tmp = st.nextToken();
                     if (tmp.startsWith("random")) {
-                        instructions.add(new Instruction(command, ThreadLocalRandom.current().nextLong(options.getAddressLimit())));
+                        instructions.add(new Instruction(command, ThreadLocalRandom.current().nextLong(options.getAddressLimit()), processId));
                     } else {
                         long addr;
                         if (tmp.startsWith("bin")) {
@@ -249,7 +198,7 @@ public class Kernel extends Thread
                             //System.exit(-1);
                             addr = 0;
                         }
-                        instructions.add(new Instruction(command, addr));
+                        instructions.add(new Instruction(command, addr, processId));
                     }
                 }
             }
@@ -260,31 +209,6 @@ public class Kernel extends Thread
         {
             log.severe("No instructions present for execution.");
             System.exit(-1);
-        }
-        int mapCount = 0;
-        Set<Integer> physicalPages = new TreeSet<>();
-        for (int i = 0; i < options.getVirtualPageNum(); i++) {
-            Page page = pages.get(i);
-            if (page.hasPhysical()) {
-                mapCount++;
-                if(physicalPages.contains(page.getPhysical())) {
-                    log.severe("Duplicate physical pages");
-                    System.exit(-1);
-                }
-                physicalPages.add(page.getPhysical());
-            }
-        }
-        if (mapCount < (options.getVirtualPageNum() +1 ) / 2) {
-            for (int i = 0; i < options.getVirtualPageNum(); i++) {
-                Page page = pages.get(i);
-                if (!page.hasPhysical()) {
-                    page.setPhysical(i);
-                    mapCount++;
-                    if(mapCount == (options.getVirtualPageNum() + 1 ) / 2) {
-                        break;
-                    }
-                }
-            }
         }
     }
 

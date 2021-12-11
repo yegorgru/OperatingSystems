@@ -2,23 +2,23 @@ public class Page
 {
     private final int id;
     private int physical;
-    private boolean read;
-    private boolean write;
+    private boolean referenced;
+    private boolean modified;
     private int memoryTime;
     private int lastTouchTime;
     private final long upperBound;
     private final long lowerBound;
 
-    public Page( int id, int physical, boolean read, boolean write, int inMemTime, int lastTouchTime, long upperBound, long lowerBound)
+    public Page( int id, boolean referenced, boolean modified, int inMemTime, int lastTouchTime, long upperBound, long lowerBound)
     {
         this.id = id;
-        this.physical = physical;
-        this.read = read;
-        this.write = write;
+        this.referenced = referenced;
+        this.modified = modified;
         this.memoryTime = inMemTime;
         this.lastTouchTime = lastTouchTime;
         this.upperBound = upperBound;
         this.lowerBound = lowerBound;
+        resetPhysical();
     }
 
     public int getId() {
@@ -41,20 +41,20 @@ public class Page
         return physical;
     }
 
-    public void setRead(boolean value) {
-        read = value;
+    public void setReferenced(boolean value) {
+        referenced = value;
     }
 
-    public boolean isRead() {
-        return read;
+    public boolean isReferenced() {
+        return referenced;
     }
 
-    public void setWrite(boolean value) {
-        write = value;
+    public void setModified(boolean value) {
+        modified = value;
     }
 
-    public boolean isWrite() {
-        return write;
+    public boolean isModified() {
+        return modified;
     }
 
     public void setLastTouchTime(int value) {

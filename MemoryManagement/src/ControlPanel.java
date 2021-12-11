@@ -4,6 +4,8 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.logging.Logger;
 
 public class ControlPanel extends Frame
@@ -24,22 +26,24 @@ public class ControlPanel extends Frame
     Label virtualPageValueLabel = new Label("x" , Label.LEFT) ;
     Label physicalPageValueLabel = new Label("0" , Label.LEFT) ;
     Label RValueLabel = new Label("0" , Label.LEFT) ;
-    Label WValueLabel = new Label("0" , Label.LEFT) ;
+    Label MValueLabel = new Label("0" , Label.LEFT) ;
     Label inMemTimeValueLabel = new Label("0" , Label.LEFT) ;
     Label lastTouchTimeValueLabel = new Label("0" , Label.LEFT) ;
     Label lowValueLabel = new Label("0" , Label.LEFT) ;
     Label highValueLabel = new Label("0" , Label.LEFT);
+    Label processValueLabel = new Label(null , Label.LEFT);
 
     ArrayList<Label> labels = new ArrayList<>();
 
-    int runs = 0;
+    private int runs = 0;
+    private final Set<Integer> loadedPhysicalPages = new TreeSet<>();
     private static final Logger log = Logger.getLogger(ControlPanel.class.getName());
 
     public ControlPanel(String title, Kernel kernel) {
         super(title);
         this.kernel = kernel;
         this.options = kernel.getOptions();
-        for(int i = 0; i <= options.getVirtualPageNum(); i++) {
+        for(int i = 0; i <= options.getVirtualPageMaxIdx(); i++) {
             pageButtons.add(new Button("page " + i));
             labels.add(new Label(null, Label.CENTER));
         }
@@ -111,8 +115,8 @@ public class ControlPanel extends Frame
         RValueLabel.setBounds(395,150+25,200,15);
         add(RValueLabel);
 
-        WValueLabel.setBounds( 395,165+25,200,15);
-        add(WValueLabel);
+        MValueLabel.setBounds( 395,165+25,200,15);
+        add(MValueLabel);
 
         inMemTimeValueLabel.setBounds(395,180+25,200,15);
         add(inMemTimeValueLabel);
@@ -125,6 +129,9 @@ public class ControlPanel extends Frame
 
         highValueLabel.setBounds(395,225+25,230,15);
         add(highValueLabel);
+
+        processValueLabel.setBounds(395,250+25,230,15);
+        add(processValueLabel);
 
         Label virtualOneLabel = new Label("virtual" , Label.CENTER) ;
         virtualOneLabel.setBounds(0,15+25,70,15);
@@ -170,13 +177,13 @@ public class ControlPanel extends Frame
         physicalPageLabel.setBounds(285,135+25,110,15);
         add(physicalPageLabel);
 
-        Label RLabel = new Label("read: ", Label.LEFT) ;
+        Label RLabel = new Label("referenced: ", Label.LEFT);
         RLabel.setBounds(285,150+25,110,15);
         add(RLabel);
 
-        Label WLabel = new Label("write: " , Label.LEFT) ;
-        WLabel.setBounds(285,165+25,110,15);
-        add(WLabel);
+        Label MLabel = new Label("modified: " , Label.LEFT);
+        MLabel.setBounds(285,165+25,110,15);
+        add(MLabel);
 
         Label inMemTimeLabel = new Label("in memory time: " , Label.LEFT) ;
         inMemTimeLabel.setBounds(285,180+25,110,15);
@@ -194,15 +201,10 @@ public class ControlPanel extends Frame
         highLabel.setBounds(285,225+25,110,15);
         add(highLabel);
 
-        for (int i = 0; i <= options.getVirtualPageNum(); i++)  {
-            Page page = kernel.getPage(i);
-            if (!page.hasPhysical()) {
-                removePhysicalPage(i);
-            }
-            else {
-                addPhysicalPage(i, page.getPhysical());
-            }
-        }
+        Label processLabel = new Label("PROCESS: " , Label.LEFT) ;
+        processLabel.setBounds(285,250+25,110,15);
+        add(processLabel);
+
         setVisible(true);
     }
 
@@ -232,19 +234,19 @@ public class ControlPanel extends Frame
             Page page = kernel.getPage(kernel.getPageIdxByAddr(instruction.getAddr()));
             String message = "READ " + Long.toString(instruction.getAddr(), options.getAddressRadix());
             processPageOperation(instruction, page, message);
-            page.setRead(true);
+            page.setReferenced(true);
         }
         if (instruction.getName().startsWith("WRITE")) {
             Page page = kernel.getPage(kernel.getPageIdxByAddr(instruction.getAddr()));
             String message = "WRITE " + Long.toString(instruction.getAddr(), options.getAddressRadix());
             processPageOperation(instruction, page, message);
-            page.setWrite(true);
+            page.setModified(true);
         }
         paintPage(kernel.getPageIdxByAddr(instruction.getAddr()));
-        for (int i = 0; i < options.getVirtualPageNum(); i++) {
+        for (int i = 0; i < options.getVirtualPageMaxIdx(); i++) {
             Page page = kernel.getPage(i);
-            if (page.isRead() && page.getLastTouchTime() == 10) {
-                page.setRead(false);
+            if (page.isReferenced() && page.getLastTouchTime() == 10) {
+                page.setReferenced(false);
             }
             if (page.hasPhysical()) {
                 page.setMemoryTime(page.getMemoryTime() + 10);
@@ -253,13 +255,14 @@ public class ControlPanel extends Frame
         }
         runs++;
         timeValueLabel.setText(runs*10 + " (ms)");
+        processValueLabel.setText("" + instruction.getProcessId());
     }
 
     private void processPageOperation(Instruction instruction, Page page, String message) {
         if (!page.hasPhysical())
         {
             message += " ... page fault";
-            replacePage(kernel.getPageIdxByAddr(instruction.getAddr()));
+            loadPage(kernel.getPageIdxByAddr(instruction.getAddr()));
             pageFaultValueLabel.setText("YES");
         }
         else {
@@ -278,8 +281,8 @@ public class ControlPanel extends Frame
         Page page = kernel.getPage(idx);
         virtualPageValueLabel.setText(Integer.toString(page.getId()));
         physicalPageValueLabel.setText( Integer.toString(page.getPhysical()));
-        RValueLabel.setText(page.isRead() ? "1" : "0");
-        WValueLabel.setText(page.isWrite() ? "1" : "0");
+        RValueLabel.setText(page.isReferenced() ? "1" : "0");
+        MValueLabel.setText(page.isModified() ? "1" : "0");
         inMemTimeValueLabel.setText( Integer.toString(page.getMemoryTime()));
         lastTouchTimeValueLabel.setText( Integer.toString(page.getLastTouchTime()));
         lowValueLabel.setText(Long.toString(page.getLowerBound(), options.getAddressRadix()));
@@ -349,7 +352,7 @@ public class ControlPanel extends Frame
         virtualPageValueLabel.setText("x");
         physicalPageValueLabel.setText("0");
         RValueLabel.setText( "0");
-        WValueLabel.setText("0");
+        MValueLabel.setText("0");
         inMemTimeValueLabel.setText("0");
         lastTouchTimeValueLabel.setText("0");
         lowValueLabel.setText("0");
@@ -358,6 +361,11 @@ public class ControlPanel extends Frame
         kernel.reset();
         runButton.setEnabled(true);
         stepButton.setEnabled(true);
+        processValueLabel.setText(null);
+        for(int i = 0; i <= options.getVirtualPageMaxIdx(); i++) {
+            removePhysicalPage(i);
+        }
+        loadedPhysicalPages.clear();
     }
 
     private void printLogInFile(String message)
@@ -372,17 +380,31 @@ public class ControlPanel extends Frame
         }
     }
 
-    private void replacePage(int newPageIdx) {
-        int oldPageIdx = new PrimitiveReplacement().replacePage(kernel.getPages());
-        Page page = kernel.getPages().get(oldPageIdx);
-        Page nextpage = kernel.getPages().get(newPageIdx);
-        removePhysicalPage(oldPageIdx);
-        nextpage.setPhysical(page.getPhysical());
-        addPhysicalPage(nextpage.getPhysical(), newPageIdx);
-        page.setMemoryTime(0);
-        page.setLastTouchTime(0);
-        page.setRead(false);
-        page.setWrite(false);
-        page.resetPhysical();
+    private void loadPage(int newPageIdx) {
+        int newPhysicalPageIdx = -1;
+        if(loadedPhysicalPages.size() < options.getPhysicalPages()) {
+            for(int i = 0; i < options.getPhysicalPages(); i++) {
+                if(!loadedPhysicalPages.contains(i)) {
+                    newPhysicalPageIdx = i;
+                    break;
+                }
+            }
+        }
+        else {
+            int oldPageIdx = new WorkingSetShiftRegisterReplacement(100).replacePage(kernel.getPages(),newPageIdx);
+            Page oldPage = kernel.getPages().get(oldPageIdx);
+            removePhysicalPage(oldPageIdx);
+            newPhysicalPageIdx = oldPage.getPhysical();
+            oldPage.setMemoryTime(0);
+            oldPage.setLastTouchTime(0);
+            oldPage.setReferenced(false);
+            oldPage.setModified(false);
+            oldPage.resetPhysical();
+            loadedPhysicalPages.remove(oldPageIdx);
+        }
+        Page nextPage = kernel.getPages().get(newPageIdx);
+        loadedPhysicalPages.add(newPhysicalPageIdx);
+        nextPage.setPhysical(newPhysicalPageIdx);
+        addPhysicalPage(nextPage.getPhysical(), newPageIdx);
     }
 }
