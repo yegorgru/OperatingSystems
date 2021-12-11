@@ -214,8 +214,7 @@ public class Application extends Frame
         statusValueLabel.setText(status);
     }
 
-    public boolean action(Event e, Object arg)
-    {
+    public boolean action(Event e, Object arg) {
         if ( e.target == runButton ) {
             setStatus( "RUN" );
             runButton.setEnabled(false);
@@ -252,6 +251,22 @@ public class Application extends Frame
         return false;
     }
 
+    public void addPhysicalPage(int physicalPage, int virtualPage) {
+        labels.get(virtualPage).setText("page " + physicalPage);
+    }
+
+    public void removePhysicalPage(int physicalPage) {
+        labels.get(physicalPage).setText(null);
+    }
+
+    public void addToWorkingSet(int pageIdx) {
+        pageButtons.get(pageIdx).setBackground(Color.yellow);
+    }
+
+    public void removeFromWorkingSet(int pageIdx) {
+        pageButtons.get(pageIdx).setBackground(Color.lightGray);
+    }
+
     private void reset() {
         statusValueLabel.setText("STOP");
         timeValueLabel.setText("0");
@@ -270,28 +285,12 @@ public class Application extends Frame
         stepButton.setEnabled(true);
         processValueLabel.setText(null);
         for(int i = 0; i <= options.getVirtualPageMaxIdx(); i++) {
-            uiRemovePhysicalPage(i);
-            uiRemoveFromWorkingSet(i);
+            removePhysicalPage(i);
+            removeFromWorkingSet(i);
         }
         String commandsPath = options.getCommandPath();
         options = Parser.parseConfigFile(options.getConfigPath());
         logics = new Logics(options);
         logics.init(this, commandsPath);
-    }
-
-    public void uiAddPhysicalPage(int physicalPage, int virtualPage) {
-        labels.get(virtualPage).setText("page " + physicalPage);
-    }
-
-    public void uiRemovePhysicalPage(int physicalPage) {
-        labels.get(physicalPage).setText(null);
-    }
-
-    public void uiAddToWorkingSet(int pageIdx) {
-        pageButtons.get(pageIdx).setBackground(Color.yellow);
-    }
-
-    public void uiRemoveFromWorkingSet(int pageIdx) {
-        pageButtons.get(pageIdx).setBackground(Color.lightGray);
     }
 }

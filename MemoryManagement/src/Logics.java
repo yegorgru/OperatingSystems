@@ -112,16 +112,11 @@ public class Logics {
     private void unloadProcess() {
         if(currentProcess != -1) {
             for(int i = 0; i < pages.size(); i++) {
-                ui.uiRemoveFromWorkingSet(i);
-                //ui.uiRemovePhysicalPage(i);
+                ui.removeFromWorkingSet(i);
                 Page page = pages.get(i);
-                //page.resetPhysical();
                 page.setModified(false);
                 page.setReferenced(false);
-                //page.setMemoryTime(0);
-                //page.setLastTouchTime(0);
             }
-            //loadedPhysicalPages.clear();
         }
         for(int i = 0; i < shiftRegister.size(); i++) {
             shiftRegister.set(i, -1);
@@ -163,7 +158,7 @@ public class Logics {
         nextPage.setMemoryTime(0);
         nextPage.setReferenced(false);
         nextPage.setModified(false);
-        ui.uiAddToWorkingSet(newPageIdx);
+        ui.addToWorkingSet(newPageIdx);
         if(nextPage.hasPhysical()) {
             return;
         }
@@ -204,8 +199,8 @@ public class Logics {
                 }
             }
             Page oldPage = pages.get(oldPageIdx);
-            ui.uiRemovePhysicalPage(oldPageIdx);
-            ui.uiRemoveFromWorkingSet(oldPageIdx);
+            ui.removePhysicalPage(oldPageIdx);
+            ui.removeFromWorkingSet(oldPageIdx);
             processWorkingSetMap.get(currentProcess).remove(oldPageIdx);
             newPhysicalPageIdx = oldPage.getPhysical();
             oldPage.setMemoryTime(0);
@@ -216,18 +211,18 @@ public class Logics {
         }
         loadedPhysicalPages.add(newPhysicalPageIdx);
         nextPage.setPhysical(newPhysicalPageIdx);
-        ui.uiAddPhysicalPage(nextPage.getPhysical(), newPageIdx);
+        ui.addPhysicalPage(nextPage.getPhysical(), newPageIdx);
     }
 
     private void updateShiftRegister(int pageIdx) {
         if(!processWorkingSetMap.get(currentProcess).contains(pageIdx)) {
-            ui.uiAddToWorkingSet(pageIdx);
+            ui.addToWorkingSet(pageIdx);
             processWorkingSetMap.get(currentProcess).add(pageIdx);
         }
         int prevIdx = shiftRegister.get(currentRegisterBit);
         shiftRegister.set(currentRegisterBit, pageIdx);
         if(prevIdx != -1 && !shiftRegister.contains(prevIdx)) {
-            ui.uiRemoveFromWorkingSet(prevIdx);
+            ui.removeFromWorkingSet(prevIdx);
             processWorkingSetMap.get(currentProcess).remove(prevIdx);
         }
         currentRegisterBit = (currentRegisterBit + 1) % shiftRegister.size();

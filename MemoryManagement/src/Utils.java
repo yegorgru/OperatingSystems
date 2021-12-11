@@ -12,13 +12,5 @@ public class Utils {
         }
         return i;
     }
-
-    static public boolean stringToBoolean(String s) {
-        int i = stringToInt(s);
-        if(i != 0 && i != 1) {
-            log.severe("Only 0 or 1 are accepted");
-        }
-        return i == 1;
-    }
 }
 

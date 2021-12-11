@@ -45,7 +45,7 @@ public class Parser extends Thread
                             log.warning("Undefined physical_pages");
                         }
                         else {
-                            int pPageNum = Utils.stringToInt(st.nextToken()) - 1;
+                            int pPageNum = Utils.stringToInt(st.nextToken());
                             if (pPageNum < 2 || pPageNum > 64) {
                                 log.warning("Number of pages is out of range. Used value 64");
                                 //System.exit(-1);
@@ -60,11 +60,11 @@ public class Parser extends Thread
                         options.setSizeOfShiftRegister(Utils.stringToInt(st.nextToken()));
                     }
                     if (line.startsWith("log_stdout")) {
-                        options.setStdoutLog(true);
+                        options.enableStdoutLog();
                     }
                     if (line.startsWith("log_file")) {
+                        options.enableFileLog();
                         StringTokenizer st = new StringTokenizer(line);
-                        options.setFileLog(true);
                         st.nextToken();
                         if(st.hasMoreTokens()) {
                             options.setFileLogPath(st.nextToken());

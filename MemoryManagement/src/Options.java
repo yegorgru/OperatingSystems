@@ -72,16 +72,16 @@ public class Options {
         return addressLimit;
     }
 
-    void setFileLog(boolean value) {
-        fileLog = value;
+    void enableFileLog() {
+        fileLog = true;
     }
 
     boolean isFileLog() {
         return fileLog;
     }
 
-    void setStdoutLog(boolean value) {
-        stdoutLog = value;
+    void enableStdoutLog() {
+        stdoutLog = true;
     }
 
     boolean isStdoutLog() {
