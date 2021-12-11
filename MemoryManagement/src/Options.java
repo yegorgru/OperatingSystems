@@ -10,6 +10,7 @@ public class Options {
     private String fileLogPath;
     private int delay;
     private int physicalPages;
+    private int sizeOfShiftRegister;
 
     public Options() {
         addressRadix = 10;
@@ -107,5 +108,13 @@ public class Options {
 
     int getPhysicalPages() {
         return physicalPages;
+    }
+
+    void setSizeOfShiftRegister(int value) {
+        sizeOfShiftRegister = value;
+    }
+
+    int getSizeOfShiftRegister() {
+        return sizeOfShiftRegister;
     }
 }

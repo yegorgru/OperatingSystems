@@ -10,7 +10,7 @@ numpages 64
 
 physical_pages 32
 
-log_stdout
+log_stdoutf
 
 //by default log.txt
 log_file file_log.txt
@@ -19,3 +19,6 @@ addressradix 16
 
 //new option
 delay 1000
+
+//size of shift register
+k 2

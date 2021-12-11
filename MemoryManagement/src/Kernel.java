@@ -86,6 +86,11 @@ public class Kernel extends Thread
                         st.nextToken();
                         options.setPhysicalPages(Utils.stringToInt(st.nextToken()));
                     }
+                    if (line.startsWith("k ")) {
+                        StringTokenizer st = new StringTokenizer(line);
+                        st.nextToken();
+                        options.setSizeOfShiftRegister(Utils.stringToInt(st.nextToken()));
+                    }
                     if (line.startsWith("log_stdout")) {
                         options.setStdoutLog(true);
                     }
@@ -175,9 +180,13 @@ public class Kernel extends Thread
                     String tmp = st.nextToken();
                     int processId = Utils.stringToInt(st.nextToken());
                     String command = st.nextToken();
-                    if (!command.equals("READ") && !command.equals("WRITE")) {
+                    if (!command.equals("READ") && !command.equals("WRITE") && !command.equals("RELOAD")) {
                         log.severe("Unknown command: " + command);
                         System.exit(-1);
+                    }
+                    if(command.equals("RELOAD")) {
+                        instructions.add(new Instruction(command, 0, processId));
+                        continue;
                     }
                     tmp = st.nextToken();
                     if (tmp.startsWith("random")) {
