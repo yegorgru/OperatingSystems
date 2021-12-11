@@ -20,6 +20,8 @@ public class Options {
         fileLog = false;
         stdoutLog = false;
         physicalPages = 32;
+        sizeOfShiftRegister = 10;
+        delay = 2000;
     }
 
     void setCommandPath(String path) {

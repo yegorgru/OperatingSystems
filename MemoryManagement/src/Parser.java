@@ -30,8 +30,8 @@ public class Parser extends Thread
                         }
                         else {
                             int vPageNum = Utils.stringToInt(st.nextToken()) - 1;
-                            if (vPageNum < 2 || vPageNum > 63) {
-                                log.warning("Number of pages is out of range. Used value 63");
+                            if (vPageNum < 1 || vPageNum > 63) {
+                                log.warning("Number of pages is out of range. Used value 64");
                                 //System.exit(-1);
                                 vPageNum = 63;
                             }
@@ -41,7 +41,18 @@ public class Parser extends Thread
                     if (line.startsWith("physical_pages")) {
                         StringTokenizer st = new StringTokenizer(line);
                         st.nextToken();
-                        options.setPhysicalPages(Utils.stringToInt(st.nextToken()));
+                        if (!st.hasMoreTokens()) {
+                            log.warning("Undefined physical_pages");
+                        }
+                        else {
+                            int pPageNum = Utils.stringToInt(st.nextToken()) - 1;
+                            if (pPageNum < 2 || pPageNum > 64) {
+                                log.warning("Number of pages is out of range. Used value 64");
+                                //System.exit(-1);
+                                pPageNum = 32;
+                            }
+                            options.setPhysicalPages(pPageNum);
+                        }
                     }
                     if (line.startsWith("k ")) {
                         StringTokenizer st = new StringTokenizer(line);
@@ -143,10 +154,6 @@ public class Parser extends Thread
                     if (!command.equals("READ") && !command.equals("WRITE") && !command.equals("RELOAD")) {
                         log.severe("Unknown command: " + command);
                         System.exit(-1);
-                    }
-                    if(command.equals("RELOAD")) {
-                        instructions.add(new Instruction(command, 0, processId));
-                        continue;
                     }
                     tmp = st.nextToken();
                     if (tmp.startsWith("random")) {

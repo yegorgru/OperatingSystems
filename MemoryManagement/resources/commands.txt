@@ -1,13 +1,24 @@
-// Enter READ/WRITE commands into this file
-// READ <OPTIONAL number type: bin/hex/oct> <virtual memory address or random>
-// WRITE <OPTIONAL number type: bin/hex/oct> <virtual memory address or random>
-PROCESS 1 READ bin 100
-PROCESS 1 READ 19
-PROCESS 1 WRITE hex CC32
-PROCESS 1 READ bin 100000000000000
-PROCESS 1 READ bin 100000000000000
-PROCESS 1 WRITE bin 110000000000001
-PROCESS 1 READ hex 9bfff
-PROCESS 1 RELOAD
-PROCESS 1 READ hex a0000
-PROCESS 1 WRITE random
+// <PROCESS> <integer (process id)> <READ | WRITE> [address format] <integer (address)>
+PROCESS 1 READ hex 28000
+PROCESS 1 READ hex 28000
+PROCESS 1 READ hex 2c000
+PROCESS 1 READ hex 30000
+PROCESS 1 READ hex 34000
+PROCESS 1 READ hex 38000
+PROCESS 1 READ hex 3c000
+PROCESS 1 READ hex 28000
+PROCESS 2 READ hex a8000
+PROCESS 2 READ hex ac000
+PROCESS 2 READ hex b0000
+PROCESS 2 READ hex b7fff
+PROCESS 2 READ hex bbfff
+PROCESS 2 READ hex bc000
+
+PROCESS 1 READ hex 3c000
+
+PROCESS 2 READ hex a8000
+PROCESS 2 READ hex c3fff
+PROCESS 2 READ hex c7fff
+PROCESS 2 READ hex cbfff
+PROCESS 2 READ hex cffff
+PROCESS 2 READ hex d3fff

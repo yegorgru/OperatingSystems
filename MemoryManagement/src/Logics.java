@@ -53,63 +53,40 @@ public class Logics {
     public boolean step() {
         Instruction instruction = instructions.get(runs);
         ui.instructionValueLabel.setText(instruction.getName());
-        if(instruction.getName().equals("RELOAD")) {
-            if(currentProcess != instruction.getProcessId()) {
-                logger.severe("Can't reload not current process");
-                System.exit(-1);
-            }
-            log("RELOAD PROCESS " + instruction.getProcessId());
+        ui.addressValueLabel.setText(Long.toString(instruction.getAddr(), options.getAddressRadix()));
+        int idx = getPageIdxByAddr(instruction.getAddr());
+        ui.paintPage(pages.get(idx));
+        if(instruction.getProcessId() != currentProcess) {
             unloadProcess();
-            loadProcess(currentProcess);
+            loadProcess(instruction.getProcessId());
         }
-        else {
-            ui.addressValueLabel.setText( Long.toString(instruction.getAddr(), options.getAddressRadix()));
-            int idx = getPageIdxByAddr(instruction.getAddr());
-            ui.paintPage(pages.get(idx));
-            if(instruction.getProcessId() != currentProcess) {
-                unloadProcess();
-                loadProcess(instruction.getProcessId());
-            }
-            if (ui.pageFaultValueLabel.getText().equals("YES")) {
-                ui.pageFaultValueLabel.setText("NO");
-            }
-            if (instruction.getName().equals("READ")) {
-                Page page = pages.get(getPageIdxByAddr(instruction.getAddr()));
-                String message = "READ " + Long.toString(instruction.getAddr(), options.getAddressRadix());
-                processPageOperation(instruction, page, message);
-                page.setReferenced(true);
-            }
-            if (instruction.getName().equals("WRITE")) {
-                Page page = pages.get(getPageIdxByAddr(instruction.getAddr()));
-                String message = "WRITE " + Long.toString(instruction.getAddr(), options.getAddressRadix());
-                processPageOperation(instruction, page, message);
-                page.setModified(true);
-            }
-            ui.paintPage(pages.get(getPageIdxByAddr(instruction.getAddr())));
-            for (int i = 0; i < options.getVirtualPageMaxIdx(); i++) {
-                Page page = pages.get(i);
-                if (page.isReferenced() && page.getLastTouchTime() == 10) {
-                    page.setReferenced(false);
-                }
-                if (page.hasPhysical()) {
-                    page.setMemoryTime(page.getMemoryTime() + 10);
-                    page.setLastTouchTime(page.getLastTouchTime() + 10);
-                }
-            }
-            ui.timeValueLabel.setText(runs*10 + " (ms)");
-            ui.processValueLabel.setText("" + instruction.getProcessId());
+        if (ui.pageFaultValueLabel.getText().equals("YES")) {
+            ui.pageFaultValueLabel.setText("NO");
         }
+        if (instruction.getName().equals("READ")) {
+            Page page = pages.get(getPageIdxByAddr(instruction.getAddr()));
+            String message = "READ " + Long.toString(instruction.getAddr(), options.getAddressRadix());
+            processPageOperation(instruction, page, message);
+            page.setReferenced(true);
+        }
+        if (instruction.getName().equals("WRITE")) {
+            Page page = pages.get(getPageIdxByAddr(instruction.getAddr()));
+            String message = "WRITE " + Long.toString(instruction.getAddr(), options.getAddressRadix());
+            processPageOperation(instruction, page, message);
+            page.setModified(true);
+        }
+        ui.paintPage(pages.get(getPageIdxByAddr(instruction.getAddr())));
+        for (int i = 0; i < options.getVirtualPageMaxIdx(); i++) {
+            Page page = pages.get(i);
+            if (page.hasPhysical()) {
+                page.setMemoryTime(page.getMemoryTime() + 10);
+                page.setLastTouchTime(page.getLastTouchTime() + 10);
+            }
+        }
+        ui.timeValueLabel.setText(runs*10 + " (ms)");
+        ui.processValueLabel.setText("" + instruction.getProcessId());
         runs++;
         return instructions.size() == runs;
-    }
-
-    public void reset() {
-        runs = 0;
-        loadedPhysicalPages.clear();
-        unloadProcess();
-        pages.clear();
-        instructions.clear();
-        instructions = Parser.parseCommandsFile(options, options.getCommandPath());
     }
 
     public List<Page> getPages() {
@@ -136,15 +113,15 @@ public class Logics {
         if(currentProcess != -1) {
             for(int i = 0; i < pages.size(); i++) {
                 ui.uiRemoveFromWorkingSet(i);
-                ui.uiRemovePhysicalPage(i);
+                //ui.uiRemovePhysicalPage(i);
                 Page page = pages.get(i);
-                page.resetPhysical();
+                //page.resetPhysical();
                 page.setModified(false);
                 page.setReferenced(false);
-                page.setMemoryTime(0);
-                page.setLastTouchTime(0);
+                //page.setMemoryTime(0);
+                //page.setLastTouchTime(0);
             }
-            loadedPhysicalPages.clear();
+            //loadedPhysicalPages.clear();
         }
         for(int i = 0; i < shiftRegister.size(); i++) {
             shiftRegister.set(i, -1);
@@ -157,29 +134,18 @@ public class Logics {
         if(!processWorkingSetMap.containsKey(currentProcess)) {
             processWorkingSetMap.put(currentProcess, new TreeSet<>());
         }
-        int physical = 0;
-        for(int i : processWorkingSetMap.get(currentProcess)) {
-            ui.uiAddToWorkingSet(i);
-            loadedPhysicalPages.add(physical);
-            ui.uiAddPhysicalPage(physical, i);
-            Page page = pages.get(i);
-            page.setLastTouchTime(0);
-            page.setPhysical(physical);
-            page.setMemoryTime(0);
-            shiftRegister.set(physical, i);
-            physical++;
+        int bit = 0;
+        for(int workingPage : processWorkingSetMap.get(currentProcess)) {
+            loadPage(workingPage);
+            shiftRegister.set(bit, workingPage);
+            bit++;
         }
-        currentRegisterBit = physical % shiftRegister.size();
-    }
-
-    private int replacePage(int newPage) {
-        return 0;
+        currentRegisterBit = bit % shiftRegister.size();
     }
 
     private void processPageOperation(Instruction instruction, Page page, String message) {
         updateShiftRegister(page.getId());
-        if (!page.hasPhysical())
-        {
+        if (!page.hasPhysical()) {
             message += " ... page fault";
             loadPage(getPageIdxByAddr(instruction.getAddr()));
             ui.pageFaultValueLabel.setText("YES");
@@ -192,6 +158,15 @@ public class Logics {
     }
 
     private void loadPage(int newPageIdx) {
+        Page nextPage = pages.get(newPageIdx);
+        nextPage.setLastTouchTime(0);
+        nextPage.setMemoryTime(0);
+        nextPage.setReferenced(false);
+        nextPage.setModified(false);
+        ui.uiAddToWorkingSet(newPageIdx);
+        if(nextPage.hasPhysical()) {
+            return;
+        }
         int newPhysicalPageIdx = -1;
         if(loadedPhysicalPages.size() < options.getPhysicalPages()) {
             for(int i = 0; i < options.getPhysicalPages(); i++) {
@@ -202,18 +177,43 @@ public class Logics {
             }
         }
         else {
-            int oldPageIdx = replacePage(newPageIdx);
+            int oldPageIdx = -1;
+            for(Page page : pages) {
+                if(page.hasPhysical() && !processWorkingSetMap.get(currentProcess).contains(page.getId())) {
+                    oldPageIdx = page.getId();
+                    break;
+                }
+            }
+            if(oldPageIdx == -1) {
+                for(int i = 0; i < shiftRegister.size(); i++) {
+                    int idx = shiftRegister.get(i);
+                    if(!processWorkingSetMap.get(currentProcess).contains(idx) || idx == -1) {
+                        continue;
+                    }
+                    boolean isLater = false;
+                    for(int j = i + 1; j < shiftRegister.size(); j++) {
+                        if(shiftRegister.get(j) == idx) {
+                            isLater = true;
+                            break;
+                        }
+                    }
+                    if(!isLater) {
+                        oldPageIdx = idx;
+                        break;
+                    }
+                }
+            }
             Page oldPage = pages.get(oldPageIdx);
             ui.uiRemovePhysicalPage(oldPageIdx);
+            ui.uiRemoveFromWorkingSet(oldPageIdx);
+            processWorkingSetMap.get(currentProcess).remove(oldPageIdx);
             newPhysicalPageIdx = oldPage.getPhysical();
             oldPage.setMemoryTime(0);
             oldPage.setLastTouchTime(0);
             oldPage.setReferenced(false);
             oldPage.setModified(false);
             oldPage.resetPhysical();
-            loadedPhysicalPages.remove(oldPageIdx);
         }
-        Page nextPage = pages.get(newPageIdx);
         loadedPhysicalPages.add(newPhysicalPageIdx);
         nextPage.setPhysical(newPhysicalPageIdx);
         ui.uiAddPhysicalPage(nextPage.getPhysical(), newPageIdx);

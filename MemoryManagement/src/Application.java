@@ -273,8 +273,10 @@ public class Application extends Frame
             uiRemovePhysicalPage(i);
             uiRemoveFromWorkingSet(i);
         }
+        String commandsPath = options.getCommandPath();
         options = Parser.parseConfigFile(options.getConfigPath());
-        logics.reset();
+        logics = new Logics(options);
+        logics.init(this, commandsPath);
     }
 
     public void uiAddPhysicalPage(int physicalPage, int virtualPage) {

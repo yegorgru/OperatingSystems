@@ -1,24 +1,39 @@
 // page size, defaults to 2^14 and cannot be greater than 2^26
-// pagesize <single page size (base 10)> or <'power' num (base 2)>
+// [<pagesize> <single page size (base 10) | <power> <num (base 2)>>]
 pagesize 16384
 
-// numpages sets the number of pages (physical and virtual)
+// numpages sets the number of virtual pages
 // 64 is the default value
 // numpages must be at least 2 and no more than 64
-// numpages <num>
+// [<numpages> <integer>]
 numpages 64
 
-physical_pages 32
+// numpages sets the number of physical pages
+// 32 is the default value
+// physical_pages must be at least 2 and no more than 64
+// [<physical_pages> <integer>]
+physical_pages 10
 
-log_stdoutf
+//enables console logging
+//[<log_stdout>]
+log_stdout
 
-//by default log.txt
+//enables file logging
+//default file path is log.txt
+//[<log_file> [<file path>]]
 log_file file_log.txt
 
+// addressradix sets the radix in which addresses are displayed
+// 2 is the default value
+// [<addressradix> <integer>]
 addressradix 16
 
-//new option
-delay 1000
+// delay sets the delay between steps when run clicked
+// 2000 is the default value
+// [<delay> <integer>]
+delay 500
 
-//size of shift register
-k 2
+// k sets size of shift register
+// 10 is the default value
+// [<k> <integer>]
+k 12
