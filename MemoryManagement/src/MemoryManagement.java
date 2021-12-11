@@ -7,18 +7,14 @@ public class MemoryManagement
 
     public static void main(String[] args)
     {
-        if ( args.length < 1 || args.length > 2 ) {
+        if (args.length != 2) {
             log.severe("Usage: 'java MemoryManagement <COMMAND FILE> <PROPERTIES FILE>'");
             System.exit(-1);
         }
         checkFile(args[0]);
-        if (args.length == 2) {
-            checkFile(args[1]);
-        }
-        Kernel kernel = new Kernel();
-        kernel.init(args[0], args.length == 1 ? null : args[1]);
-        ControlPanel controlPanel = new ControlPanel( "Memory Management", kernel);
-        controlPanel.init();
+        checkFile(args[1]);
+        ControlPanel controlPanel = new ControlPanel( "Memory Management");
+        controlPanel.init(args[0], args[1]);
     }
 
     public static void checkFile(String path) {

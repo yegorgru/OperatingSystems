@@ -4,56 +4,14 @@ import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.logging.Logger;
 
-public class Kernel extends Thread
+public class Parser extends Thread
 {
-    private static final Logger log = Logger.getLogger(Kernel.class.getName());
-    private final Options options;
+    private static final Logger log = Logger.getLogger(Parser.class.getName());
 
-    private final List<Page> pages = new ArrayList<>();
-    private final List<Instruction> instructions = new ArrayList<>();
-
-    public Kernel() {
-        options = new Options();
-    }
-
-    public Options getOptions() {
-        return options;
-    }
-
-    public List<Page> getPages() {
-        return pages;
-    }
-
-    public List<Instruction> getInstructions() {
-        return instructions;
-    }
-
-    public int getPageIdxByAddr(long memoryAddr)
+    public Options parseConfigFile(String configPath)
     {
-        int pageIdx = (int)(memoryAddr / options.getBlock());
-        if(pageIdx < 0 || pageIdx > options.getVirtualPageMaxIdx()) {
-            return -1;
-        }
-        return pageIdx;
-    }
-
-    public void init(String commandsPath, String configPath) {
-        options.setCommandPath(commandsPath);
+        Options options = new Options();
         options.setConfigPath(configPath);
-        parseConfigFile();
-        parseCommandsFile();
-    }
-
-    public void initPages() {
-        for (int i = 0; i <= options.getVirtualPageMaxIdx(); i++) {
-            long high = (options.getBlock() * (i + 1))-1;
-            long low = options.getBlock() * i;
-            pages.add(new Page(i, false, false, 0, 0, high, low));
-        }
-    }
-
-    public void parseConfigFile()
-    {
         if (options.getConfigPath() != null)
         {
             File configFile = new File (options.getConfigPath());
@@ -79,7 +37,6 @@ public class Kernel extends Thread
                             }
                             options.setVirtualPageMaxIdx(vPageNum);
                         }
-                        initPages();
                     }
                     if (line.startsWith("physical_pages")) {
                         StringTokenizer st = new StringTokenizer(line);
@@ -167,9 +124,12 @@ public class Kernel extends Thread
                 System.exit(-1);
             }
         }
+        return options;
     }
 
-    public void parseCommandsFile() {
+    public List<Instruction> parseCommandsFile(Options options, String commandsPath) {
+        options.setCommandPath(commandsPath);
+        List<Instruction> instructions = new ArrayList<>();
         File commandsFile = new File (options.getCommandPath());
         try {
             Scanner scanner = new Scanner(commandsFile);
@@ -212,24 +172,14 @@ public class Kernel extends Thread
                 }
             }
         } catch (IOException ex) {
-
+            log.severe("Unexpected exception: " + ex.getMessage());
+            System.exit(-1);
         }
         if(instructions.size() == 0)
         {
             log.severe("No instructions present for execution.");
             System.exit(-1);
         }
-    }
-
-    public Page getPage(int pageNum)
-    {
-        return pages.get(pageNum);
-    }
-
-    public void reset() {
-        pages.clear();
-        instructions.clear();
-        parseConfigFile();
-        parseCommandsFile();
+        return instructions;
     }
 }
